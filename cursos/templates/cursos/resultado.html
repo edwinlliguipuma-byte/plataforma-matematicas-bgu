@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado de Evaluación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 font-sans text-slate-100 min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-xl w-full bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl p-10 text-center border border-white/20 space-y-8">
+        <div class="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-5xl mx-auto font-bold border border-emerald-500/30 shadow-inner">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        
+        <div>
+            <h1 class="text-3xl font-extrabold text-white">¡Evaluación Enviada con Éxito!</h1>
+            <p class="text-lg text-blue-200 mt-2">{{ evaluacion.titulo }}</p>
+        </div>
+        
+        <div class="py-8 bg-slate-900/60 rounded-2xl border border-white/10 shadow-inner">
+            <p class="text-sm text-slate-400 uppercase font-bold tracking-wider">Tu Calificación Final</p>
+            <p class="text-6xl font-black text-emerald-400 mt-3">{{ nota|floatformat:2 }} <span class="text-2xl text-slate-400">/ 10</span></p>
+        </div>
+
+        <p class="text-sm text-emerald-300 bg-emerald-500/10 p-5 rounded-2xl border border-emerald-500/20 flex items-center justify-center gap-3">
+            <i class="fa-solid fa-circle-check text-xl"></i> Tu nota ha sido guardada exitosamente en el sistema del profesor.
+        </p>
+    </div>
+</body>
+</html>

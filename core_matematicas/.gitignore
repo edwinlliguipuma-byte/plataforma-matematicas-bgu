@@ -1,0 +1,9 @@
+venv/
+venv_pa/
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+staticfiles/
+.env
+.vscode/

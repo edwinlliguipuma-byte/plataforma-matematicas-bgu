@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarea Entregada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 font-sans text-slate-100 min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-xl w-full bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl p-10 text-center border border-white/20 space-y-6">
+        <div class="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-5xl mx-auto font-bold border border-emerald-500/30">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h1 class="text-3xl font-extrabold text-white">¡Tarea Entregada Exitosamente!</h1>
+        <p class="text-lg text-blue-200">Estudiante: <strong class="text-white">{{ estudiante.user.first_name }} {{ estudiante.user.last_name }}</strong></p>
+        <p class="text-base text-slate-300 bg-slate-900/60 p-4 rounded-2xl border border-white/10">Tu deber para <strong>{{ tarea.titulo }}</strong> ha sido guardado correctamente en el casillero del profesor.</p>
+    </div>
+</body>
+</html>
