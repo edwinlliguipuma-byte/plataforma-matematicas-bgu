@@ -1,9 +1,9 @@
-import os
 import glob
 import pandas as pd
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from cursos.models import CursoBGU, EstudiantePerfil
+
 
 class Command(BaseCommand):
     help = 'Importa masivamente los estudiantes de forma instantánea'
@@ -23,6 +23,10 @@ class Command(BaseCommand):
         }
 
         archivos = glob.glob("*.csv")
+        if not archivos:
+            self.stdout.write(self.style.WARNING("No se encontraron archivos *.csv en la carpeta actual."))
+            return
+
         total_importados = 0
 
         for archivo_csv in archivos:
@@ -31,17 +35,15 @@ class Command(BaseCommand):
                 if clave in archivo_csv:
                     curso_db_nombre = valor
                     break
-            
+
             if not curso_db_nombre:
+                self.stdout.write(self.style.WARNING(f"Sin mapeo de curso para: {archivo_csv}"))
                 continue
 
-            try:
-                curso_obj = CursoBGU.objects.get(nombre=curso_db_nombre)
-            except CursoBGU.DoesNotExist:
-                continue
+            curso_obj, _ = CursoBGU.objects.get_or_create(nombre=curso_db_nombre)
 
             df = pd.read_csv(archivo_csv)
-            
+
             fila_inicio = None
             for idx, row in df.iterrows():
                 row_str = str(row.values)
@@ -50,8 +52,10 @@ class Command(BaseCommand):
                     break
 
             if fila_inicio is None:
+                self.stdout.write(self.style.WARNING(f"No se encontró cabecera CÉDULA/CEDULA en: {archivo_csv}"))
                 continue
 
+            importados_archivo = 0
             for idx in range(fila_inicio, len(df)):
                 row = df.iloc[idx]
                 cedula = str(row.iloc[3]).strip()
@@ -69,7 +73,6 @@ class Command(BaseCommand):
                     apellidos = nombres_completos
                     nombres = "Estudiante"
 
-                # Crear usuario de forma directa y rápida
                 user, creado = User.objects.get_or_create(
                     username=cedula,
                     defaults={
@@ -91,5 +94,8 @@ class Command(BaseCommand):
                 perfil.save()
 
                 total_importados += 1
+                importados_archivo += 1
+
+            self.stdout.write(f"  - {archivo_csv} -> {curso_db_nombre}: {importados_archivo} estudiantes")
 
         self.stdout.write(self.style.SUCCESS(f"¡EXITO_TOTAL: {total_importados} estudiantes importados perfectamente!"))

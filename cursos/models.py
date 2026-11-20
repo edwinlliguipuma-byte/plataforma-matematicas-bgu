@@ -1,10 +1,12 @@
 from django.db import models
 
+
 class CursoBGU(models.Model):
     nombre = models.CharField(max_length=100, verbose_name="Nombre del Curso")
 
     def __str__(self):
         return self.nombre
+
 
 class EstudiantePerfil(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True, blank=True)
@@ -12,8 +14,21 @@ class EstudiantePerfil(models.Model):
     cedula = models.CharField(max_length=20, unique=True)
     curso = models.ForeignKey(CursoBGU, on_delete=models.CASCADE)
 
+    @property
+    def nombre_completo(self):
+        if self.apellidos_nombres and self.apellidos_nombres.strip():
+            return self.apellidos_nombres.strip()
+        if self.user:
+            nombre_usuario = f"{self.user.last_name} {self.user.first_name}".strip()
+            if nombre_usuario:
+                return nombre_usuario
+            if self.user.username:
+                return self.user.username
+        return self.cedula
+
     def __str__(self):
-        return f"{self.apellidos_nombres or self.cedula} - {self.curso}"
+        return f"{self.nombre_completo} - {self.curso}"
+
 
 class Tarea(models.Model):
     TIPO_CHOICES = [
@@ -30,6 +45,7 @@ class Tarea(models.Model):
 
     def __str__(self):
         return f"[{self.get_tipo_tarea_display()}] {self.titulo}"
+
 
 class EntregaTarea(models.Model):
     ESTADO_MATERIA_CHOICES = [
@@ -57,6 +73,7 @@ class EntregaTarea(models.Model):
     def __str__(self):
         return f"Entrega de {self.estudiante} para {self.tarea}"
 
+
 class Evaluacion(models.Model):
     titulo = models.CharField(max_length=200, verbose_name="Título de la Evaluación")
     descripcion = models.TextField(verbose_name="Instrucciones y Enlace")
@@ -65,6 +82,7 @@ class Evaluacion(models.Model):
 
     def __str__(self):
         return f"{self.titulo} - {self.curso}"
+
 
 class ResultadoEvaluacion(models.Model):
     evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE)

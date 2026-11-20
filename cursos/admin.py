@@ -12,9 +12,13 @@ class CursoBGUAdmin(admin.ModelAdmin):
 
 @admin.register(EstudiantePerfil)
 class EstudiantePerfilAdmin(admin.ModelAdmin):
-    list_display = ('apellidos_nombres', 'cedula', 'curso')
-    search_fields = ('apellidos_nombres', 'cedula', 'curso__nombre')
+    list_display = ('nombre_completo_admin', 'cedula', 'curso')
+    search_fields = ('apellidos_nombres', 'user__first_name', 'user__last_name', 'cedula', 'curso__nombre')
     list_filter = ('curso',)
+
+    @admin.display(description="Apellidos y Nombres")
+    def nombre_completo_admin(self, obj):
+        return obj.nombre_completo
 
 
 @admin.register(Tarea)
@@ -25,11 +29,18 @@ class TareaAdmin(admin.ModelAdmin):
     readonly_fields = ('enlace_estudiante_detalle',)
     fields = ('titulo', 'descripcion', 'curso', 'fecha_limite', 'tipo_tarea', 'enlace_estudiante_detalle')
 
+    def get_queryset(self, request):
+        self._request = request
+        return super().get_queryset(request)
+
     def _url_tarea(self, obj):
         if not obj or not obj.pk:
             return ''
         path = reverse('subir_tarea', kwargs={'tarea_id': obj.pk})
-        return f"http://127.0.0.1:8000{path}"
+        req = getattr(self, '_request', None)
+        if req:
+            return req.build_absolute_uri(path)
+        return f"https://plataforma-matematicas-bgu.onrender.com{path}"
 
     @admin.display(description="URL del Estudiante")
     def enlace_estudiante(self, obj):
@@ -75,7 +86,7 @@ class EntregaTareaAdmin(admin.ModelAdmin):
         'nota_calculada',
         'fecha_envio',
     )
-    search_fields = ('estudiante__apellidos_nombres', 'estudiante__cedula', 'tarea__titulo')
+    search_fields = ('estudiante__apellidos_nombres', 'estudiante__user__first_name', 'estudiante__user__last_name', 'estudiante__cedula', 'tarea__titulo')
     list_filter = ('estudiante__curso', 'tarea__tipo_tarea', 'tarea')
 
 
@@ -87,11 +98,18 @@ class EvaluacionAdmin(admin.ModelAdmin):
     readonly_fields = ('enlace_estudiante_detalle',)
     fields = ('titulo', 'descripcion', 'curso', 'enlace_estudiante_detalle')
 
+    def get_queryset(self, request):
+        self._request = request
+        return super().get_queryset(request)
+
     def _url_evaluacion(self, obj):
         if not obj or not obj.pk:
             return ''
         path = reverse('ver_evaluacion', kwargs={'evaluacion_id': obj.pk})
-        return f"http://127.0.0.1:8000{path}"
+        req = getattr(self, '_request', None)
+        if req:
+            return req.build_absolute_uri(path)
+        return f"https://plataforma-matematicas-bgu.onrender.com{path}"
 
     @admin.display(description="URL del Estudiante")
     def enlace_estudiante(self, obj):
@@ -129,5 +147,5 @@ class EvaluacionAdmin(admin.ModelAdmin):
 @admin.register(ResultadoEvaluacion)
 class ResultadoEvaluacionAdmin(admin.ModelAdmin):
     list_display = ('estudiante', 'evaluacion', 'nota_obtenida', 'fecha_registro')
-    search_fields = ('estudiante__apellidos_nombres', 'estudiante__cedula', 'evaluacion__titulo')
+    search_fields = ('estudiante__apellidos_nombres', 'estudiante__user__first_name', 'estudiante__user__last_name', 'estudiante__cedula', 'evaluacion__titulo')
     list_filter = ('estudiante__curso', 'evaluacion')

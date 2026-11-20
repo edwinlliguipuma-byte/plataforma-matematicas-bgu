@@ -38,17 +38,28 @@
             <!-- Datos informativos del estudiante -->
             <div class="bg-slate-900/80 border border-slate-700 p-5 rounded-2xl mb-6 space-y-2">
                 <p class="text-xs font-bold text-blue-400 uppercase tracking-widest">Datos del Estudiante:</p>
-                <p class="text-lg font-black text-white">👤 {{ estudiante.apellidos_nombres }}</p>
+                <p class="text-lg font-black text-white">👤 {{ estudiante.nombre_completo }}</p>
                 <p class="text-sm text-slate-300">🆔 Cédula: <span class="font-mono font-bold">{{ estudiante.cedula }}</span></p>
                 <p class="text-sm text-slate-300">🏫 Curso: <span class="font-bold text-blue-300">{{ estudiante.curso.nombre }}</span></p>
             </div>
 
-            <!-- Instrucciones y enlace -->
+            <!-- Instrucciones y enlace clicable -->
             <div class="bg-blue-950/40 border-l-4 border-blue-500 p-4 mb-6 rounded-r-xl">
                 <p class="text-xs font-bold text-blue-400 uppercase tracking-wider">Instrucciones y Enlace:</p>
-                <div class="text-slate-200 text-sm mt-2 whitespace-pre-line leading-relaxed">
-                    {{ evaluacion.descripcion }}
+                <div id="instrucciones-texto" class="text-slate-200 text-sm mt-2 whitespace-pre-line leading-relaxed break-words">
+                    {{ evaluacion.descripcion|urlize }}
                 </div>
+
+                {% if enlaces %}
+                    <div class="mt-4 pt-3 border-t border-blue-500/30 space-y-2">
+                        {% for link in enlaces %}
+                            <a href="{{ link }}" target="_blank" rel="noopener noreferrer"
+                               class="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-4 rounded-xl transition duration-200 shadow-lg text-sm">
+                                🚀 Abrir Evaluación / Simulador en Nueva Pestaña
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Recuadro para registrar la nota obtenida -->
@@ -78,10 +89,18 @@
                 {% endif %}
             </div>
 
-            <a href="http://127.0.0.1:8000/evaluacion/{{ evaluacion.id }}/" class="block text-center bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2.5 px-4 rounded-xl text-sm transition">
+            <a href="{% url 'ver_evaluacion' evaluacion.id %}" class="block text-center bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2.5 px-4 rounded-xl text-sm transition">
                 ← Cambiar de Estudiante
             </a>
         {% endif %}
     </div>
+
+    <script>
+        document.querySelectorAll('#instrucciones-texto a').forEach(a => {
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'text-blue-400 underline font-bold hover:text-blue-300';
+        });
+    </script>
 </body>
 </html>

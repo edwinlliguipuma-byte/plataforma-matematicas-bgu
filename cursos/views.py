@@ -1,4 +1,5 @@
 import random
+import re
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from .models import Tarea, EstudiantePerfil, EntregaTarea, Evaluacion, ResultadoEvaluacion
@@ -7,10 +8,10 @@ from .models import Tarea, EstudiantePerfil, EntregaTarea, Evaluacion, Resultado
 def buscar_estudiante_json(request, cedula):
     cedula_limpia = (cedula or '').strip()
     try:
-        estudiante = EstudiantePerfil.objects.select_related('curso').get(cedula=cedula_limpia)
+        estudiante = EstudiantePerfil.objects.select_related('user', 'curso').get(cedula=cedula_limpia)
         return JsonResponse({
             'encontrado': True,
-            'apellidos_nombres': estudiante.apellidos_nombres or estudiante.cedula,
+            'apellidos_nombres': estudiante.nombre_completo,
             'cedula': estudiante.cedula,
             'curso': estudiante.curso.nombre if estudiante.curso else '',
         })
@@ -39,7 +40,7 @@ def subir_tarea(request, tarea_id):
         archivo = request.FILES.get('archivo_estudiante')
 
         try:
-            estudiante = EstudiantePerfil.objects.select_related('curso').get(cedula=cedula)
+            estudiante = EstudiantePerfil.objects.select_related('user', 'curso').get(cedula=cedula)
 
             if tipo == 'materia':
                 estado_materia = request.POST.get('estado_materia', '').strip().lower()
@@ -95,6 +96,7 @@ def subir_tarea(request, tarea_id):
 
 def ver_evaluacion(request, evaluacion_id):
     evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id)
+    enlaces = re.findall(r'https?://[^\s<>"]+', evaluacion.descripcion or '')
     error = None
     estudiante = None
     resultado_guardado = None
@@ -105,7 +107,7 @@ def ver_evaluacion(request, evaluacion_id):
         if accion == 'buscar_cedula':
             cedula = request.POST.get('cedula', '').strip()
             try:
-                estudiante = EstudiantePerfil.objects.select_related('curso').get(cedula=cedula)
+                estudiante = EstudiantePerfil.objects.select_related('user', 'curso').get(cedula=cedula)
                 resultado_guardado = ResultadoEvaluacion.objects.filter(
                     evaluacion=evaluacion,
                     estudiante=estudiante
@@ -115,7 +117,7 @@ def ver_evaluacion(request, evaluacion_id):
 
         elif accion == 'guardar_nota':
             estudiante_id = request.POST.get('estudiante_id')
-            estudiante = get_object_or_404(EstudiantePerfil.objects.select_related('curso'), id=estudiante_id)
+            estudiante = get_object_or_404(EstudiantePerfil.objects.select_related('user', 'curso'), id=estudiante_id)
             nota_str = request.POST.get('nota_obtenida', '0').strip().replace(',', '.')
 
             try:
@@ -131,6 +133,7 @@ def ver_evaluacion(request, evaluacion_id):
 
     return render(request, 'cursos/evaluacion.html', {
         'evaluacion': evaluacion,
+        'enlaces': enlaces,
         'error': error,
         'estudiante': estudiante,
         'resultado_guardado': resultado_guardado,
