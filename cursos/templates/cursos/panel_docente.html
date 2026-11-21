@@ -69,10 +69,10 @@
 
         <!-- PANEL DE FILTROS Y DESCARGA EXCEL -->
         <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
-            <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
+            <form method="GET" id="form-filtros" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5">1. Filtrar por Curso BGU</label>
-                    <select name="curso" onchange="this.form.submit()"
+                    <select name="curso" onchange="cambiarCurso(this.form)"
                             class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold text-slate-800 focus:border-blue-500 outline-none">
                         <option value="">-- Todos los Cursos --</option>
                         {% for c in cursos %}
@@ -85,13 +85,17 @@
 
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5">2. Módulo de Clase y Lección</label>
-                    <select name="evaluacion" onchange="this.form.submit()"
+                    <select name="evaluacion" id="select-evaluacion" onchange="this.form.submit()"
                             class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold text-slate-800 focus:border-blue-500 outline-none">
-                        {% for m in modulos_disponibles %}
-                            <option value="{{ m.id }}" {% if modulo_seleccionado and modulo_seleccionado.id == m.id %}selected{% endif %}>
-                                {{ m.titulo }} ({{ m.curso.nombre }})
-                            </option>
-                        {% endfor %}
+                        {% if modulos_disponibles %}
+                            {% for m in modulos_disponibles %}
+                                <option value="{{ m.id }}" {% if modulo_seleccionado and modulo_seleccionado.id == m.id %}selected{% endif %}>
+                                    {{ m.titulo }} ({{ m.curso.nombre }})
+                                </option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="">-- Sin módulos en este curso --</option>
+                        {% endif %}
                     </select>
                 </div>
 
@@ -112,6 +116,11 @@
                         <a href="{% url 'exportar_notas_csv' %}?evaluacion={{ modulo_seleccionado.id }}"
                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-4 rounded-xl text-sm text-center transition shadow flex items-center justify-center gap-2">
                             <span>📥</span> Descargar Excel (.CSV)
+                        </a>
+                    {% elif curso_activo %}
+                        <a href="{% url 'exportar_notas_csv' %}?curso={{ curso_activo.id }}"
+                           class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-4 rounded-xl text-sm text-center transition shadow flex items-center justify-center gap-2">
+                            <span>📥</span> Descargar Nómina (.CSV)
                         </a>
                     {% endif %}
                 </div>
@@ -135,13 +144,27 @@
             </div>
         </div>
 
+        <!-- AVISO SI EL CURSO FILTRADO NO TIENE MÓDULO CREADO TODAVÍA -->
+        {% if curso_activo and not modulo_seleccionado %}
+            <div class="bg-amber-50 border border-amber-300 text-amber-900 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+                <div class="text-sm">
+                    <strong>ℹ️ Aviso:</strong> El curso <strong>{{ curso_activo.nombre }}</strong> aún no tiene un Módulo de Clase y Lección publicado. Se muestra su nómina oficial de estudiantes.
+                </div>
+                <a href="/admin/cursos/evaluacion/add/" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs">
+                    + Crear Módulo para {{ curso_activo.nombre }}
+                </a>
+            </div>
+        {% endif %}
+
         <!-- LISTADO DE ESTUDIANTES Y CALIFICACIONES -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            {% if modulo_seleccionado %}
+            {% if curso_activo %}
                 <div class="bg-slate-50 px-4 sm:px-6 py-3.5 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
                     <div>
-                        <span class="text-xs font-bold uppercase text-blue-600">{{ modulo_seleccionado.curso.nombre }}</span>
-                        <h2 class="font-black text-slate-900 text-base sm:text-lg">{{ modulo_seleccionado.titulo }}</h2>
+                        <span class="text-xs font-bold uppercase text-blue-600">{{ curso_activo.nombre }}</span>
+                        <h2 class="font-black text-slate-900 text-base sm:text-lg">
+                            {% if modulo_seleccionado %}{{ modulo_seleccionado.titulo }}{% else %}Nómina de Estudiantes (Sin módulo asignado){% endif %}
+                        </h2>
                     </div>
                     <span class="text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
                         Nómina Oficial Alfabética
@@ -183,9 +206,13 @@
                                                     {{ fila.nota|floatformat:2 }}
                                                 </span>
                                             {% endif %}
-                                        {% else %}
+                                        {% elif modulo_seleccionado %}
                                             <span class="inline-block bg-amber-50 text-amber-700 border border-amber-200 font-bold px-3 py-1 rounded-full text-xs">
                                                 Pendiente
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-block bg-slate-100 text-slate-500 border border-slate-200 font-semibold px-3 py-1 rounded-full text-xs">
+                                                Sin módulo
                                             </span>
                                         {% endif %}
                                     </td>
@@ -228,9 +255,13 @@
                                             {{ fila.nota|floatformat:2 }}
                                         </span>
                                     {% endif %}
-                                {% else %}
+                                {% elif modulo_seleccionado %}
                                     <span class="inline-block bg-amber-50 text-amber-700 border border-amber-200 font-bold px-2.5 py-1 rounded-xl text-xs">
                                         Pendiente
+                                    </span>
+                                {% else %}
+                                    <span class="inline-block bg-slate-100 text-slate-500 border border-slate-200 font-semibold px-2.5 py-1 rounded-xl text-xs">
+                                        Sin módulo
                                     </span>
                                 {% endif %}
                             </div>
@@ -239,13 +270,19 @@
                 </div>
             {% else %}
                 <div class="p-10 text-center text-slate-500">
-                    Aún no has creado ningún Módulo de Clase y Lección. Haz clic en <strong>+ Nuevo Módulo</strong> arriba para empezar.
+                    Selecciona un curso arriba o crea tu primer Módulo de Clase y Lección haciendo clic en <strong>+ Nuevo Módulo</strong>.
                 </div>
             {% endif %}
         </div>
     </main>
 
     <script>
+        function cambiarCurso(form) {
+            const selEval = document.getElementById('select-evaluacion');
+            if (selEval) selEval.value = '';
+            form.submit();
+        }
+
         function filtrarTabla() {
             const texto = document.getElementById('buscador-rapido').value.toLowerCase().trim();
             document.querySelectorAll('.fila-estudiante').forEach(el => {

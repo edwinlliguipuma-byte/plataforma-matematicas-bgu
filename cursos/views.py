@@ -37,7 +37,6 @@ def api_guardar_nota_evaluacion(request):
         estudiante = EstudiantePerfil.objects.select_related('user', 'curso').get(cedula=cedula)
         evaluacion = Evaluacion.objects.select_related('curso').get(id=evaluacion_id)
 
-        # Validación estricta: la nota solo se guarda si el estudiante pertenece al curso del módulo
         if estudiante.curso_id != evaluacion.curso_id:
             return _agregar_cors(JsonResponse({
                 'ok': False,
@@ -183,10 +182,6 @@ def ver_evaluacion(request, evaluacion_id):
 
 
 def portal_estudiante(request):
-    """
-    Portal único del estudiante (/aula/): al ingresar su cédula ve exclusivamente
-    los Módulos de Clase y Lección y las Tareas de su propio curso.
-    """
     error = None
     estudiante = None
     modulos_con_nota = []
@@ -230,37 +225,43 @@ def portal_estudiante(request):
 
 @staff_member_required(login_url='/admin/login/')
 def panel_docente(request):
-    """
-    Panel exclusivo y responsivo para el docente (/docente/) con KPIs,
-    filtros por curso/módulo, listado completo de estudiantes y descarga a Excel.
-    """
     cursos = CursoBGU.objects.all().order_by('nombre')
     curso_id = request.GET.get('curso', '').strip()
     evaluacion_id = request.GET.get('evaluacion', '').strip()
     estado_filtro = request.GET.get('estado', 'todos').strip()
 
+    curso_seleccionado = None
     if curso_id.isdigit():
-        modulos_disponibles = Evaluacion.objects.filter(curso_id=int(curso_id)).order_by('-fecha_creacion')
+        curso_seleccionado = CursoBGU.objects.filter(id=int(curso_id)).first()
+
+    if curso_seleccionado:
+        modulos_disponibles = Evaluacion.objects.select_related('curso').filter(
+            curso=curso_seleccionado
+        ).order_by('-fecha_creacion')
     else:
         modulos_disponibles = Evaluacion.objects.select_related('curso').all().order_by('-fecha_creacion')
 
+    # Buscar el módulo ÚNICAMENTE dentro de los módulos válidos para el curso filtrado
     modulo_seleccionado = None
     if evaluacion_id.isdigit():
-        modulo_seleccionado = Evaluacion.objects.select_related('curso').filter(id=int(evaluacion_id)).first()
-    elif modulos_disponibles.exists():
+        modulo_seleccionado = modulos_disponibles.filter(id=int(evaluacion_id)).first()
+    if not modulo_seleccionado and modulos_disponibles.exists():
         modulo_seleccionado = modulos_disponibles.first()
 
-    # Si hay un módulo seleccionado, mostramos la nómina completa del curso de ese módulo (rendidos + pendientes)
+    curso_activo = modulo_seleccionado.curso if modulo_seleccionado else curso_seleccionado
+
     filas = []
-    if modulo_seleccionado:
+    if curso_activo:
         estudiantes_qs = EstudiantePerfil.objects.select_related('user', 'curso').filter(
-            curso=modulo_seleccionado.curso
+            curso=curso_activo
         ).order_by('apellidos_nombres', 'cedula')
 
-        resultados_map = {
-            r.estudiante_id: r
-            for r in ResultadoEvaluacion.objects.filter(evaluacion=modulo_seleccionado)
-        }
+        resultados_map = {}
+        if modulo_seleccionado:
+            resultados_map = {
+                r.estudiante_id: r
+                for r in ResultadoEvaluacion.objects.filter(evaluacion=modulo_seleccionado)
+            }
 
         for est in estudiantes_qs:
             res = resultados_map.get(est.id)
@@ -291,6 +292,8 @@ def panel_docente(request):
 
     return render(request, 'cursos/panel_docente.html', {
         'cursos': cursos,
+        'curso_seleccionado': curso_seleccionado,
+        'curso_activo': curso_activo,
         'modulos_disponibles': modulos_disponibles,
         'modulo_seleccionado': modulo_seleccionado,
         'curso_id_actual': curso_id,
@@ -305,31 +308,47 @@ def panel_docente(request):
 
 @staff_member_required(login_url='/admin/login/')
 def exportar_notas_csv(request):
-    """
-    Descarga las calificaciones filtradas en formato CSV compatible directamente con Excel.
-    """
     evaluacion_id = request.GET.get('evaluacion', '').strip()
+    curso_id = request.GET.get('curso', '').strip()
+
     modulo = None
+    curso_activo = None
+
     if evaluacion_id.isdigit():
         modulo = Evaluacion.objects.select_related('curso').filter(id=int(evaluacion_id)).first()
-    if not modulo:
+    if modulo:
+        curso_activo = modulo.curso
+    elif curso_id.isdigit():
+        curso_activo = CursoBGU.objects.filter(id=int(curso_id)).first()
+    else:
         modulo = Evaluacion.objects.select_related('curso').order_by('-fecha_creacion').first()
+        if modulo:
+            curso_activo = modulo.curso
 
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    nombre_archivo = f"Calificaciones_{modulo.curso.nombre}_{modulo.titulo}.csv".replace(' ', '_').replace("'", "") if modulo else "Calificaciones_BGU.csv"
+    if modulo:
+        nombre_archivo = f"Calificaciones_{modulo.curso.nombre}_{modulo.titulo}.csv".replace(' ', '_').replace("'", "")
+    elif curso_activo:
+        nombre_archivo = f"Nomina_{curso_activo.nombre}.csv".replace(' ', '_').replace("'", "")
+    else:
+        nombre_archivo = "Calificaciones_BGU.csv"
+
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
 
     writer = csv.writer(response, delimiter=';')
     writer.writerow(['N°', 'Apellidos y Nombres', 'Cédula', 'Curso', 'Módulo / Lección', 'Calificación (/10)', 'Estado', 'Fecha y Hora de Registro'])
 
-    if modulo:
+    if curso_activo:
         estudiantes = EstudiantePerfil.objects.select_related('user', 'curso').filter(
-            curso=modulo.curso
+            curso=curso_activo
         ).order_by('apellidos_nombres', 'cedula')
-        resultados_map = {
-            r.estudiante_id: r
-            for r in ResultadoEvaluacion.objects.filter(evaluacion=modulo)
-        }
+
+        resultados_map = {}
+        if modulo:
+            resultados_map = {
+                r.estudiante_id: r
+                for r in ResultadoEvaluacion.objects.filter(evaluacion=modulo)
+            }
 
         for idx, est in enumerate(estudiantes, start=1):
             res = resultados_map.get(est.id)
@@ -339,7 +358,7 @@ def exportar_notas_csv(request):
                 fecha_str = res.fecha_registro.strftime('%d/%m/%Y %H:%M')
             else:
                 nota_str = "0,00"
-                estado_str = "PENDIENTE"
+                estado_str = "PENDIENTE" if modulo else "SIN MÓDULO"
                 fecha_str = "-"
 
             writer.writerow([
@@ -347,7 +366,7 @@ def exportar_notas_csv(request):
                 est.nombre_completo,
                 est.cedula,
                 est.curso.nombre,
-                modulo.titulo,
+                modulo.titulo if modulo else "Sin módulo asignado",
                 nota_str,
                 estado_str,
                 fecha_str,
