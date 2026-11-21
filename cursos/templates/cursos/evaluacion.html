@@ -21,10 +21,8 @@
         {% endif %}
 
         {% if not estudiante %}
-            <!-- Formulario para buscar la cédula -->
             <form method="POST" class="space-y-4">
                 {% csrf_token %}
-                <input type="hidden" name="accion" value="buscar_cedula">
                 <div>
                     <label class="block text-sm font-bold text-slate-300 mb-2">Ingresa tu número de cédula:</label>
                     <input type="text" name="cedula" required class="w-full bg-slate-900 border-2 border-slate-700 rounded-xl p-3.5 focus:border-blue-500 outline-none font-bold text-white text-lg" placeholder="Ej: 0953839776">
@@ -35,7 +33,6 @@
                 </button>
             </form>
         {% else %}
-            <!-- Datos informativos del estudiante -->
             <div class="bg-slate-900/80 border border-slate-700 p-5 rounded-2xl mb-6 space-y-2">
                 <p class="text-xs font-bold text-blue-400 uppercase tracking-widest">Datos del Estudiante:</p>
                 <p class="text-lg font-black text-white">👤 {{ estudiante.nombre_completo }}</p>
@@ -43,7 +40,6 @@
                 <p class="text-sm text-slate-300">🏫 Curso: <span class="font-bold text-blue-300">{{ estudiante.curso.nombre }}</span></p>
             </div>
 
-            <!-- Instrucciones y enlace clicable -->
             <div class="bg-blue-950/40 border-l-4 border-blue-500 p-4 mb-6 rounded-r-xl">
                 <p class="text-xs font-bold text-blue-400 uppercase tracking-wider">Instrucciones y Enlace:</p>
                 <div id="instrucciones-texto" class="text-slate-200 text-sm mt-2 whitespace-pre-line leading-relaxed break-words">
@@ -53,8 +49,8 @@
                 {% if enlaces %}
                     <div class="mt-4 pt-3 border-t border-blue-500/30 space-y-2">
                         {% for link in enlaces %}
-                            <a href="{{ link }}" target="_blank" rel="noopener noreferrer"
-                               class="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-4 rounded-xl transition duration-200 shadow-lg text-sm">
+                            <a href="{{ link }}?cedula={{ estudiante.cedula }}&evaluacion_id={{ evaluacion.id }}" target="_blank" rel="noopener noreferrer"
+                               class="btn-simulador flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 px-4 rounded-xl transition duration-200 shadow-lg text-sm">
                                 🚀 Abrir Evaluación / Simulador en Nueva Pestaña
                             </a>
                         {% endfor %}
@@ -62,30 +58,26 @@
                 {% endif %}
             </div>
 
-            <!-- Recuadro para registrar la nota obtenida -->
+            <!-- Estado automático de calificación (sin ingreso manual) -->
             <div class="bg-slate-900 border-2 border-blue-600/50 p-5 rounded-2xl mb-6">
-                <h3 class="text-sm font-bold text-blue-400 uppercase tracking-wider mb-3">Registro de Calificación</h3>
+                <h3 class="text-sm font-bold text-blue-400 uppercase tracking-wider mb-3">Calificación Automática</h3>
                 
                 {% if resultado_guardado %}
                     <div class="bg-green-500/10 border border-green-500/40 text-green-400 p-4 rounded-xl text-center">
-                        <p class="text-xs font-semibold uppercase">¡Nota registrada con éxito!</p>
-                        <p class="text-3xl font-black mt-1">{{ resultado_guardado.nota_obtenida }} / 10.0</p>
+                        <p class="text-xs font-semibold uppercase">✅ ¡Nota recibida automáticamente del simulador!</p>
+                        <p class="text-4xl font-black mt-1">{{ resultado_guardado.nota_obtenida }} / 10.0</p>
                     </div>
                 {% else %}
-                    <form method="POST" class="space-y-4">
-                        {% csrf_token %}
-                        <input type="hidden" name="accion" value="guardar_nota">
-                        <input type="hidden" name="estudiante_id" value="{{ estudiante.id }}">
-                        
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Escribe la nota que obtuviste en el simulador (sobre 10):</label>
-                            <input type="number" step="0.1" min="0" max="10" name="nota_obtenida" required class="w-full bg-slate-800 border-2 border-slate-700 rounded-xl p-3 text-center text-xl font-black text-white outline-none focus:border-blue-500" placeholder="Ej: 8.5">
-                        </div>
-
-                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-3 px-4 rounded-xl transition duration-200 shadow-lg text-sm">
-                            Guardar mi Nota en la Plataforma
-                        </button>
-                    </form>
+                    <div class="bg-slate-800/80 border border-slate-700 p-4 rounded-xl text-center space-y-3">
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            ⏳ <strong>Esperando resultado del simulador...</strong><br>
+                            Abre el simulador con el botón azul de arriba. Al finalizar tu examen, tu calificación se registrará aquí automáticamente.
+                        </p>
+                        <a href="?cedula={{ estudiante.cedula }}"
+                           class="inline-block w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 px-4 rounded-xl transition duration-200 shadow text-xs">
+                            🔄 Actualizar y Verificar mi Nota
+                        </a>
+                    </div>
                 {% endif %}
             </div>
 
@@ -96,11 +88,36 @@
     </div>
 
     <script>
+        const cedulaActual = "{{ estudiante.cedula|default:'' }}";
+        const evalIdActual = "{{ evaluacion.id }}";
+        const yaTieneNota = {% if resultado_guardado %}true{% else %}false{% endif %};
+
         document.querySelectorAll('#instrucciones-texto a').forEach(a => {
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
             a.className = 'text-blue-400 underline font-bold hover:text-blue-300';
         });
+
+        if (cedulaActual) {
+            document.querySelectorAll('.btn-simulador, #instrucciones-texto a').forEach(a => {
+                try {
+                    const baseHref = a.href.split('?')[0];
+                    const urlObj = new URL(baseHref);
+                    urlObj.searchParams.set('cedula', cedulaActual);
+                    urlObj.searchParams.set('evaluacion_id', evalIdActual);
+                    a.href = urlObj.toString();
+                } catch (e) {}
+            });
+
+            // Si aún no tiene nota, recarga automáticamente cuando el estudiante vuelve desde el simulador
+            if (!yaTieneNota) {
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        window.location.href = `?cedula=${encodeURIComponent(cedulaActual)}`;
+                    }
+                });
+            }
+        }
     </script>
 </body>
 </html>
