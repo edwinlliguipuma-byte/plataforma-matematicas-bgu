@@ -111,30 +111,51 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- CONFIGURACIÓN VISUAL DE JAZZMIN (DISEÑO MODERNO Y GRANDE) ---
 JAZZMIN_SETTINGS = {
-    "site_title": "Matemáticas BGU",
-    "site_header": "Plataforma BGU",
+    "site_title": "Matemáticas BGU Técnico",
+    "site_header": "Matemáticas BGU Técnico",
     "site_brand": "Matemáticas BGU Técnico",
-    "welcome_sign": "Bienvenido al Panel del Docente",
+    "welcome_sign": "Bienvenido al Sistema Académico • U.E. Dr. Enrique Noboa",
     "copyright": "Colegio BGU Técnico",
-    "search_model": "auth.User",
-    "user_avatar": None,
+    "search_model": ["cursos.EstudiantePerfil"],
 
-    # Iconos para el menú lateral
-    "icons": {
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user-shield",
-        "auth.Group": "fas fa-users",
-        "cursos.cursobgu": "fas fa-chalkboard",
-        "cursos.tarea": "fas fa-file-alt",
-        "cursos.estudianteperfil": "fas fa-user-graduate",
-        "cursos.evaluacion": "fas fa-file-contract",
-        "cursos.resultadoexamen": "fas fa-chart-line",
+    # Botones en la barra blanca superior (junto al buscador)
+    "topmenu_links": [
+        {"name": "Inicio", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "📊 Panel Docente (Notas y Excel)", "url": "/docente/", "new_window": False},
+        {"name": "🎓 Aula Virtual Estudiantes", "url": "/aula/", "new_window": True},
+    ],
+
+    # Enlaces directos en el menú lateral oscuro dentro de "Cursos"
+    "custom_links": {
+        "cursos": [
+            {
+                "name": "📊 Abrir Panel Docente (Excel)",
+                "url": "/docente/",
+                "icon": "fas fa-chart-line",
+            },
+            {
+                "name": "🎓 Ver Aula Virtual (/aula/)",
+                "url": "/aula/",
+                "icon": "fas fa-graduation-cap",
+                "new_window": True,
+            },
+        ]
     },
 
-    "side_menu_nav_flat_style": True,
-    "theme": "flatly",
-    "dark_mode_theme": "darkly",
-}
+    # Íconos profesionales para cada sección
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "cursos.CursoBGU": "fas fa-chalkboard",
+        "cursos.EstudiantePerfil": "fas fa-user-graduate",
+        "cursos.Evaluacion": "fas fa-book-open",
+        "cursos.ResultadoEvaluacion": "fas fa-check-circle",
+        "cursos.Tarea": "fas fa-file-alt",
+        "cursos.EntregaTarea": "fas fa-clipboard-check",
+    },
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "changeform_format": "horizontal_tabs",
+}
