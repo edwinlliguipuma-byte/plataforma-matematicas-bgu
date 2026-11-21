@@ -2,32 +2,50 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarea Entregada Exitosamente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Calificación Registrada | {{ tarea.titulo }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 font-sans text-slate-100 min-h-screen flex items-center justify-center p-6">
-    <div class="max-w-xl w-full bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl p-10 text-center border border-white/20 space-y-6">
-        <div class="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-5xl mx-auto font-bold border border-emerald-500/30 shadow-inner">
-            <i class="fa-solid fa-circle-check"></i>
-        </div>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-3 sm:p-6 text-slate-100">
+    <div class="bg-slate-800 max-w-xl w-full p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl border border-emerald-500/40 text-center space-y-5">
         
-        <h1 class="text-3xl font-extrabold text-white">¡Tarea Calificada y Entregada!</h1>
-        
-        <p class="text-lg text-blue-200">
-            Estudiante: <strong class="text-white">{{ estudiante.nombre_completo }}</strong>
-        </p>
-        
-        <div class="py-6 bg-slate-900/60 rounded-2xl border border-white/10 shadow-inner">
-            <p class="text-sm text-slate-400 uppercase font-bold tracking-wider">Calificación Asignada por la IA</p>
-            <p class="text-5xl font-black text-emerald-400 mt-2">{{ nota|floatformat:2 }} <span class="text-2xl text-slate-400">/ 10</span></p>
-            <p class="text-xs text-slate-400 mt-2">(Nota mínima garantizada por entrega: 5.00)</p>
+        <span class="inline-block bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
+            ✅ Revisión Completada por IA
+        </span>
+
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-white">{{ tarea.titulo }}</h1>
+            <p class="text-sm text-slate-300 mt-1">👤 <strong>{{ estudiante.nombre_completo }}</strong></p>
+            <p class="text-xs text-blue-300 font-bold">🏫 {{ estudiante.curso.nombre }} • {{ total_archivos }} archivo(s) analizado(s)</p>
         </div>
 
-        <div class="pt-4">
-            <a href="{% url 'subir_tarea' tarea.id %}" class="inline-block px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition text-base">
-                <i class="fa-solid fa-arrow-left mr-2"></i> Volver
+        <div class="bg-slate-900 border-2 border-emerald-500/60 p-6 rounded-2xl">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Calificación Obtenida</p>
+            <p class="text-4xl sm:text-5xl font-black text-emerald-400 mt-1">{{ nota|floatformat:2 }} <span class="text-lg text-slate-400">/ 10.00</span></p>
+
+            {% if tipo_tarea != 'materia' %}
+                <div class="mt-4 pt-3 border-t border-slate-800 flex justify-center gap-4 text-xs sm:text-sm">
+                    <span class="bg-emerald-950 text-emerald-300 px-3 py-1 rounded-lg font-bold">
+                        ✔ Completos: {% if tipo_tarea == 'taller' %}{{ sellos_talleres }}{% else %}{{ sellos_deberes }}{% endif %}
+                    </span>
+                    <span class="bg-amber-950 text-amber-300 px-3 py-1 rounded-lg font-bold">
+                        ⏰ Atrasados "A": {{ sellos_atrasados }}
+                    </span>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if observacion_ia %}
+            <div class="bg-blue-950/50 border-l-4 border-blue-500 p-4 rounded-r-xl text-left">
+                <p class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">📋 Informe Detallado de la IA:</p>
+                <p class="text-sm text-slate-200 leading-relaxed">{{ observacion_ia }}</p>
+            </div>
+        {% endif %}
+
+        <div class="pt-2 flex flex-col sm:flex-row gap-3">
+            <a href="{% url 'portal_estudiante' %}?cedula={{ estudiante.cedula }}"
+               class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 px-4 rounded-xl text-sm transition">
+                ← Volver a mi Aula Virtual
             </a>
         </div>
     </div>
