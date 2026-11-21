@@ -2,6 +2,7 @@ import csv
 import json
 import random
 import re
+import unicodedata
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
@@ -14,6 +15,14 @@ def _agregar_cors(response):
     response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
     response['Access-Control-Allow-Headers'] = 'Content-Type'
     return response
+
+
+def _clave_alfabetica(estudiante):
+    texto = (estudiante.nombre_completo or '').strip().upper()
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', texto)
+        if unicodedata.category(c) != 'Mn'
+    )
 
 
 @csrf_exempt
@@ -241,7 +250,6 @@ def panel_docente(request):
     else:
         modulos_disponibles = Evaluacion.objects.select_related('curso').all().order_by('-fecha_creacion')
 
-    # Buscar el módulo ÚNICAMENTE dentro de los módulos válidos para el curso filtrado
     modulo_seleccionado = None
     if evaluacion_id.isdigit():
         modulo_seleccionado = modulos_disponibles.filter(id=int(evaluacion_id)).first()
@@ -254,7 +262,9 @@ def panel_docente(request):
     if curso_activo:
         estudiantes_qs = EstudiantePerfil.objects.select_related('user', 'curso').filter(
             curso=curso_activo
-        ).order_by('apellidos_nombres', 'cedula')
+        )
+        # Ordenamiento estricto A -> Z usando el nombre completo real (sin importar si viene de user o apellidos_nombres)
+        estudiantes_ordenados = sorted(estudiantes_qs, key=_clave_alfabetica)
 
         resultados_map = {}
         if modulo_seleccionado:
@@ -263,7 +273,7 @@ def panel_docente(request):
                 for r in ResultadoEvaluacion.objects.filter(evaluacion=modulo_seleccionado)
             }
 
-        for est in estudiantes_qs:
+        for est in estudiantes_ordenados:
             res = resultados_map.get(est.id)
             nota = res.nota_obtenida if res else None
             fecha = res.fecha_registro if res else None
@@ -339,9 +349,10 @@ def exportar_notas_csv(request):
     writer.writerow(['N°', 'Apellidos y Nombres', 'Cédula', 'Curso', 'Módulo / Lección', 'Calificación (/10)', 'Estado', 'Fecha y Hora de Registro'])
 
     if curso_activo:
-        estudiantes = EstudiantePerfil.objects.select_related('user', 'curso').filter(
+        estudiantes_qs = EstudiantePerfil.objects.select_related('user', 'curso').filter(
             curso=curso_activo
-        ).order_by('apellidos_nombres', 'cedula')
+        )
+        estudiantes = sorted(estudiantes_qs, key=_clave_alfabetica)
 
         resultados_map = {}
         if modulo:
