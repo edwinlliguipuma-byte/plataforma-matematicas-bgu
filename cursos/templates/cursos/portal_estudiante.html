@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Aula Virtual Matemática BGU | U.E. Dr. Enrique Noboa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 min-h-screen flex items-center justify-center p-3 sm:p-6 text-slate-100">
+    <div class="bg-slate-900 max-w-2xl w-full p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-800">
+        
+        <div class="text-center mb-6">
+            <span class="bg-blue-600/20 border border-blue-500/40 text-blue-300 text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider">
+                U.E. "Dr. Enrique Noboa" • Matemática BGU
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-black text-white mt-3">Aula Virtual del Estudiante</h1>
+            <p class="text-sm text-slate-400 mt-1">Ingresa tu número de cédula para acceder a tus módulos de clase, deberes y lecciones.</p>
+        </div>
+
+        {% if error %}
+            <div class="bg-red-500/15 border border-red-500/50 text-red-300 px-4 py-3.5 rounded-xl mb-6 text-sm font-medium">
+                ⚠️ {{ error }}
+            </div>
+        {% endif %}
+
+        {% if not estudiante %}
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-bold text-slate-300 mb-2">Número de Cédula:</label>
+                    <input type="text" name="cedula" inputmode="numeric" required
+                           class="w-full bg-slate-950 border-2 border-slate-700 rounded-xl p-4 focus:border-blue-500 outline-none font-bold text-white text-lg text-center tracking-wider"
+                           placeholder="Ej: 0944313485">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-4 rounded-xl transition shadow-lg text-base">
+                    🔍 Ingresar a mi Curso
+                </button>
+            </form>
+        {% else %}
+            <div class="bg-gradient-to-r from-blue-950 to-slate-800 border border-blue-500/40 p-4 sm:p-5 rounded-2xl mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <p class="text-xs font-bold text-blue-400 uppercase tracking-wider">Estudiante Identificado</p>
+                    <p class="text-lg font-black text-white mt-0.5">👤 {{ estudiante.nombre_completo }}</p>
+                    <p class="text-sm text-emerald-300 font-bold mt-0.5">🏫 {{ estudiante.curso.nombre }}</p>
+                </div>
+                <a href="{% url 'portal_estudiante' %}" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold py-2.5 px-4 rounded-xl text-xs text-center transition">
+                    Cambiar Cédula
+                </a>
+            </div>
+
+            <!-- MÓDULOS DE CLASE Y LECCIÓN -->
+            <div class="mb-6">
+                <h2 class="text-sm font-black uppercase tracking-wider text-blue-400 mb-3">
+                    📘 Módulos de Clase, Deber y Lección ({{ modulos_con_nota|length }})
+                </h2>
+                {% if modulos_con_nota %}
+                    <div class="space-y-3">
+                        {% for item in modulos_con_nota %}
+                            <div class="bg-slate-800/80 border border-slate-700 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div>
+                                    <p class="font-bold text-white text-base">{{ item.modulo.titulo }}</p>
+                                    {% if item.resultado %}
+                                        <span class="inline-block mt-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black px-3 py-1 rounded-full">
+                                            ✅ Nota Lección: {{ item.resultado.nota_obtenida }} / 10.0
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-block mt-1.5 bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold px-3 py-1 rounded-full">
+                                            ⏳ Pendiente de realizar
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <a href="{% url 'ver_evaluacion' item.modulo.id %}?cedula={{ estudiante.cedula }}"
+                                   class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-4 rounded-xl text-sm text-center transition shrink-0">
+                                    Abrir Módulo →
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-slate-400 bg-slate-800/50 p-4 rounded-xl">No hay módulos asignados todavía para tu curso.</p>
+                {% endif %}
+            </div>
+
+            <!-- TAREAS / CUADERNOS -->
+            {% if tareas_con_nota %}
+                <div>
+                    <h2 class="text-sm font-black uppercase tracking-wider text-emerald-400 mb-3">
+                        📝 Registro de Cuaderno y Sellos ({{ tareas_con_nota|length }})
+                    </h2>
+                    <div class="space-y-3">
+                        {% for item in tareas_con_nota %}
+                            <div class="bg-slate-800/80 border border-slate-700 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div>
+                                    <p class="font-bold text-white text-sm">{{ item.tarea.titulo }}</p>
+                                    {% if item.entrega %}
+                                        <span class="inline-block mt-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                            ✔ Nota: {{ item.entrega.nota_calculada }} / 10
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <a href="{% url 'subir_tarea' item.tarea.id %}"
+                                   class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs text-center transition shrink-0">
+                                    Registrar →
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>

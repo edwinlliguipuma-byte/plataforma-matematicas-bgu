@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Panel Docente | Matemática BGU Técnico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-900">
+
+    <!-- BARRA SUPERIOR DOCENTE -->
+    <nav class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-lg shadow">
+                    ∑
+                </div>
+                <div>
+                    <h1 class="font-black text-base sm:text-lg leading-tight">Panel Docente • Matemática BGU</h1>
+                    <p class="text-xs text-blue-300">U.E. "Dr. Enrique Noboa" • Control de Módulos y Calificaciones</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="copiarLinkAula()"
+                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition shadow flex items-center gap-1.5">
+                    <span>🔗</span> <span id="txt-copiar">Copiar Link Aula Estudiantes</span>
+                </button>
+                <a href="/admin/cursos/evaluacion/add/"
+                   class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition shadow">
+                    + Nuevo Módulo
+                </a>
+                <a href="/admin/"
+                   class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition">
+                    ⚙ Admin
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6">
+
+        <!-- TARJETAS DE INDICADORES (KPIs) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Estudiantes en Lista</p>
+                <p class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{{ total_nomina }}</p>
+                <p class="text-xs text-slate-400 mt-1">Matriculados filtrados</p>
+            </div>
+
+            <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-emerald-200">
+                <p class="text-xs font-bold uppercase tracking-wider text-emerald-600">Lecciones Rendidas</p>
+                <p class="text-2xl sm:text-3xl font-black text-emerald-700 mt-1">{{ total_rendidos }}</p>
+                <p class="text-xs text-emerald-600/80 mt-1">Calificaciones recibidas</p>
+            </div>
+
+            <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-amber-200">
+                <p class="text-xs font-bold uppercase tracking-wider text-amber-600">Pendientes</p>
+                <p class="text-2xl sm:text-3xl font-black text-amber-600 mt-1">{{ total_pendientes }}</p>
+                <p class="text-xs text-amber-600/80 mt-1">Aún sin rendir</p>
+            </div>
+
+            <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-blue-200">
+                <p class="text-xs font-bold uppercase tracking-wider text-blue-600">Promedio General</p>
+                <p class="text-2xl sm:text-3xl font-black text-blue-700 mt-1">{{ promedio }} <span class="text-sm font-bold text-slate-400">/ 10</span></p>
+                <p class="text-xs text-blue-600/80 mt-1">Sobre lecciones rendidas</p>
+            </div>
+        </div>
+
+        <!-- PANEL DE FILTROS Y DESCARGA EXCEL -->
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+            <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5">1. Filtrar por Curso BGU</label>
+                    <select name="curso" onchange="this.form.submit()"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold text-slate-800 focus:border-blue-500 outline-none">
+                        <option value="">-- Todos los Cursos --</option>
+                        {% for c in cursos %}
+                            <option value="{{ c.id }}" {% if curso_id_actual == c.id|stringformat:"s" %}selected{% endif %}>
+                                {{ c.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5">2. Módulo de Clase y Lección</label>
+                    <select name="evaluacion" onchange="this.form.submit()"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold text-slate-800 focus:border-blue-500 outline-none">
+                        {% for m in modulos_disponibles %}
+                            <option value="{{ m.id }}" {% if modulo_seleccionado and modulo_seleccionado.id == m.id %}selected{% endif %}>
+                                {{ m.titulo }} ({{ m.curso.nombre }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5">3. Estado de Calificación</label>
+                    <select name="estado" onchange="this.form.submit()"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold text-slate-800 focus:border-blue-500 outline-none">
+                        <option value="todos" {% if estado_filtro == 'todos' %}selected{% endif %}>Todos los estudiantes</option>
+                        <option value="rendidos" {% if estado_filtro == 'rendidos' %}selected{% endif %}>Solo Rendidos</option>
+                        <option value="pendientes" {% if estado_filtro == 'pendientes' %}selected{% endif %}>Solo Pendientes</option>
+                        <option value="aprobados" {% if estado_filtro == 'aprobados' %}selected{% endif %}>Aprobados (≥ 7.00)</option>
+                        <option value="refuerzo" {% if estado_filtro == 'refuerzo' %}selected{% endif %}>Necesitan Refuerzo (< 7.00)</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-2">
+                    {% if modulo_seleccionado %}
+                        <a href="{% url 'exportar_notas_csv' %}?evaluacion={{ modulo_seleccionado.id }}"
+                           class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-4 rounded-xl text-sm text-center transition shadow flex items-center justify-center gap-2">
+                            <span>📥</span> Descargar Excel (.CSV)
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+
+            <!-- BUSCADOR INSTANTÁNEO -->
+            <div class="mt-4 pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <input type="text" id="buscador-rapido" onkeyup="filtrarTabla()"
+                       placeholder="🔎 Buscar estudiante por apellidos, nombres o cédula..."
+                       class="w-full sm:max-w-md bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-blue-500 outline-none">
+
+                {% if modulo_seleccionado %}
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <span>Enlace directo del módulo:</span>
+                        <a href="{% url 'ver_evaluacion' modulo_seleccionado.id %}" target="_blank"
+                           class="text-blue-600 font-bold underline">
+                            Abrir vista estudiante ↗
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- LISTADO DE ESTUDIANTES Y CALIFICACIONES -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            {% if modulo_seleccionado %}
+                <div class="bg-slate-50 px-4 sm:px-6 py-3.5 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                        <span class="text-xs font-bold uppercase text-blue-600">{{ modulo_seleccionado.curso.nombre }}</span>
+                        <h2 class="font-black text-slate-900 text-base sm:text-lg">{{ modulo_seleccionado.titulo }}</h2>
+                    </div>
+                    <span class="text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                        Nómina Oficial Alfabética
+                    </span>
+                </div>
+
+                <!-- VISTA ESCRITORIO (TABLA) -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="tabla-calificaciones">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
+                                <th class="py-3 px-4 font-bold">N°</th>
+                                <th class="py-3 px-4 font-bold">Apellidos y Nombres</th>
+                                <th class="py-3 px-4 font-bold">Cédula</th>
+                                <th class="py-3 px-4 font-bold">Curso</th>
+                                <th class="py-3 px-4 font-bold text-center">Nota (/10)</th>
+                                <th class="py-3 px-4 font-bold">Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-sm">
+                            {% for fila in filas %}
+                                <tr class="fila-estudiante hover:bg-blue-50/50 transition">
+                                    <td class="py-3 px-4 font-bold text-slate-400">{{ forloop.counter }}</td>
+                                    <td class="py-3 px-4 font-bold text-slate-900 nombre-col">{{ fila.estudiante.nombre_completo }}</td>
+                                    <td class="py-3 px-4 font-mono text-slate-600 cedula-col">{{ fila.estudiante.cedula }}</td>
+                                    <td class="py-3 px-4">
+                                        <span class="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold px-2.5 py-1 rounded-lg">
+                                            {{ fila.estudiante.curso.nombre }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        {% if fila.nota is not None %}
+                                            {% if fila.nota >= 7.0 %}
+                                                <span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-300 font-black px-3 py-1 rounded-full text-sm">
+                                                    {{ fila.nota|floatformat:2 }}
+                                                </span>
+                                            {% else %}
+                                                <span class="inline-block bg-red-100 text-red-800 border border-red-300 font-black px-3 py-1 rounded-full text-sm">
+                                                    {{ fila.nota|floatformat:2 }}
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="inline-block bg-amber-50 text-amber-700 border border-amber-200 font-bold px-3 py-1 rounded-full text-xs">
+                                                Pendiente
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-4 text-xs text-slate-500">
+                                        {% if fila.fecha %}{{ fila.fecha|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-slate-400">No hay estudiantes para los filtros seleccionados.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- VISTA CELULAR (TARJETAS RESPONSIVAS) -->
+                <div class="md:hidden divide-y divide-slate-200" id="cards-calificaciones">
+                    {% for fila in filas %}
+                        <div class="fila-estudiante p-4 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-bold text-slate-900 text-sm truncate nombre-col">
+                                    {{ forloop.counter }}. {{ fila.estudiante.nombre_completo }}
+                                </p>
+                                <p class="text-xs text-slate-500 font-mono mt-0.5 cedula-col">
+                                    ID: {{ fila.estudiante.cedula }}
+                                </p>
+                                {% if fila.fecha %}
+                                    <p class="text-[11px] text-slate-400 mt-0.5">{{ fila.fecha|date:"d/m/Y H:i" }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="shrink-0">
+                                {% if fila.nota is not None %}
+                                    {% if fila.nota >= 7.0 %}
+                                        <span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-300 font-black px-3 py-1.5 rounded-xl text-sm">
+                                            {{ fila.nota|floatformat:2 }}
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-block bg-red-100 text-red-800 border border-red-300 font-black px-3 py-1.5 rounded-xl text-sm">
+                                            {{ fila.nota|floatformat:2 }}
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="inline-block bg-amber-50 text-amber-700 border border-amber-200 font-bold px-2.5 py-1 rounded-xl text-xs">
+                                        Pendiente
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="p-10 text-center text-slate-500">
+                    Aún no has creado ningún Módulo de Clase y Lección. Haz clic en <strong>+ Nuevo Módulo</strong> arriba para empezar.
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <script>
+        function filtrarTabla() {
+            const texto = document.getElementById('buscador-rapido').value.toLowerCase().trim();
+            document.querySelectorAll('.fila-estudiante').forEach(el => {
+                const nombre = (el.querySelector('.nombre-col')?.textContent || '').toLowerCase();
+                const cedula = (el.querySelector('.cedula-col')?.textContent || '').toLowerCase();
+                el.style.display = (nombre.includes(texto) || cedula.includes(texto)) ? '' : 'none';
+            });
+        }
+
+        function copiarLinkAula() {
+            const urlAula = `${window.location.origin}/aula/`;
+            navigator.clipboard.writeText(urlAula).then(() => {
+                const span = document.getElementById('txt-copiar');
+                span.textContent = '¡Link Copiado!';
+                setTimeout(() => { span.textContent = 'Copiar Link Aula Estudiantes'; }, 2500);
+            });
+        }
+    </script>
+</body>
+</html>
