@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Esquela Oficial • {{ estudiante.nombre_completo }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print { .no-print { display: none !important; } body { background: white !important; } }
+    </style>
+</head>
+<body class="bg-slate-200 py-8 px-4 text-slate-900">
+    <div class="max-w-3xl mx-auto mb-4 flex justify-end gap-3 no-print">
+        <button onclick="window.print()" class="bg-blue-800 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow">🖨️ Imprimir / Guardar como PDF</button>
+    </div>
+
+    <div class="max-w-3xl mx-auto bg-white border-2 border-slate-800 p-8 md:p-10 shadow-xl">
+        <div class="text-center border-b-2 border-slate-800 pb-4 mb-6">
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-600">Ministerio de Educación • Distrito Educativo La Troncal</p>
+            <h1 class="text-xl font-black uppercase mt-1">UNIDAD EDUCATIVA TÉCNICA "DR. ENRIQUE NOBOA"</h1>
+            <p class="text-xs font-semibold text-slate-600">La Troncal • Cañar • Ecuador</p>
+            <div class="mt-3 inline-block bg-slate-900 text-white px-5 py-1.5 font-extrabold text-sm uppercase tracking-wider">
+                ESQUELA DE NOTIFICACIÓN POR INCUMPLIMIENTO ACADÉMICO
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm mb-6 bg-slate-50 border border-slate-300 p-4">
+            <p><strong>Estudiante:</strong> {{ estudiante.nombre_completo }}</p>
+            <p><strong>Cédula:</strong> {{ estudiante.cedula }}</p>
+            <p><strong>Curso:</strong> {{ estudiante.curso.nombre }}</p>
+            <p><strong>Especialidad / Paralelo:</strong> {{ especialidad }} • Paralelo "{{ paralelo }}"</p>
+            <p><strong>Fecha de Emisión:</strong> {{ fecha_hoy|date:"d/m/Y H:i" }}</p>
+            <p><strong>Tel. Representante:</strong> {{ estudiante.telefono_representante|default:"No registrado" }}</p>
+        </div>
+
+        <p class="text-sm leading-relaxed mb-4">
+            Estimado/a <strong>Padre, Madre de Familia o Representante Legal</strong>:<br>
+            Por medio de la presente se le notifica que su representado/a registra incumplimiento o bajo rendimiento en las siguientes actividades académicas evaluadas hasta la fecha:
+        </p>
+
+        <table class="w-full border-collapse border border-slate-800 text-sm mb-6">
+            <thead class="bg-slate-200">
+                <tr>
+                    <th class="border border-slate-800 py-2 px-3 text-left">Tipo</th>
+                    <th class="border border-slate-800 py-2 px-3 text-left">Actividad / Tema</th>
+                    <th class="border border-slate-800 py-2 px-3 text-left">Novedad Registrada</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items_pendientes %}
+                <tr>
+                    <td class="border border-slate-800 py-2 px-3 font-bold">{{ item.tipo }}</td>
+                    <td class="border border-slate-800 py-2 px-3">{{ item.actividad }}</td>
+                    <td class="border border-slate-800 py-2 px-3 text-red-700 font-semibold">{{ item.estado }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="border border-slate-800 py-3 px-3 text-center">Sin actividades pendientes registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="text-sm leading-relaxed mb-10">
+            Solicitamos su compromiso y control en casa para que el/la estudiante presente y regularice estas obligaciones en un plazo máximo de <strong>48 horas hábiles</strong>, evitando afectaciones en su promedio parcial y quimestral.
+        </p>
+
+        <div class="grid grid-cols-3 gap-6 text-center text-xs pt-8">
+            <div class="border-t border-slate-800 pt-2">
+                <strong>Docente de la Asignatura</strong><br>U.E. Técnica "Dr. Enrique Noboa"
+            </div>
+            <div class="border-t border-slate-800 pt-2">
+                <strong>Padre / Representante Legal</strong><br>C.I.: ______________________
+            </div>
+            <div class="border-t border-slate-800 pt-2">
+                <strong>Tutoría / Inspección</strong><br>Recibido y Verificado
+            </div>
+        </div>
+    </div>
+</body>
+</html>

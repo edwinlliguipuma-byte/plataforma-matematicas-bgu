@@ -1,80 +1,74 @@
+import io
 import base64
+from PIL import Image
 from django.db import models
-
-
-def _mime_desde_nombre(nombre_archivo):
-    nombre = (nombre_archivo or '').lower()
-    if nombre.endswith('.png'):
-        return 'image/png'
-    if nombre.endswith('.webp'):
-        return 'image/webp'
-    return 'image/jpeg'
+from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class MuestraSelloFirma(models.Model):
     nombre = models.CharField(
         max_length=150,
         default="Sello y Firma Oficial del Docente",
-        verbose_name="Nombre Identificador"
+        verbose_name="Nombre Identificador",
     )
     imagen_sello = models.ImageField(
-        upload_to='sellos_referencia/',
+        upload_to="sellos/",
         blank=True,
         null=True,
-        verbose_name="Foto del Sello Oficial"
+        verbose_name="Foto del Sello Oficial",
     )
     imagen_firma = models.ImageField(
-        upload_to='sellos_referencia/',
+        upload_to="firmas/",
         blank=True,
         null=True,
-        verbose_name="Foto de la Firma a Mano (y ejemplo de marca 'A' si deseas)"
+        verbose_name="Foto de la Firma a Mano (y ejemplo de marca 'A' si deseas)",
     )
-    descripcion_visual = models.TextField(
+    sello_base64 = models.TextField(blank=True, null=True)
+    sello_mime = models.CharField(max_length=50, blank=True, null=True)
+    firma_base64 = models.TextField(blank=True, null=True)
+    firma_mime = models.CharField(max_length=50, blank=True, null=True)
+    descripcion = models.TextField(
         blank=True,
         null=True,
         verbose_name="Descripción del Sello, Firma y Marca 'A'",
-        help_text="Ej: Sello azul de la U.E. Dr. Enrique Noboa - Matemática y rúbrica con esfero azul. Cuando es atrasado escribo una letra 'A' junto al sello."
+        help_text="Ej: Sello azul de la U.E. Dr. Enrique Noboa - Matemática y rúbrica con esfero azul. Cuando es atrasado escribo una letra 'A' junto al sello.",
     )
-    sello_base64 = models.TextField(blank=True, null=True, editable=False)
-    sello_mime = models.CharField(max_length=50, blank=True, null=True, editable=False)
-    firma_base64 = models.TextField(blank=True, null=True, editable=False)
-    firma_mime = models.CharField(max_length=50, blank=True, null=True, editable=False)
     activo = models.BooleanField(default=True, verbose_name="Activo para Calificación IA")
-    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Última Actualización")
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Muestra de Sello y Firma"
         verbose_name_plural = "Muestras de Sello y Firma"
-        ordering = ['-fecha_actualizacion']
-
-    def save(self, *args, **kwargs):
-        if self.imagen_sello and hasattr(self.imagen_sello, 'file'):
-            try:
-                self.imagen_sello.seek(0)
-                raw_sello = self.imagen_sello.read()
-                if raw_sello:
-                    self.sello_base64 = base64.b64encode(raw_sello).decode('utf-8')
-                    self.sello_mime = _mime_desde_nombre(self.imagen_sello.name)
-                self.imagen_sello.seek(0)
-            except Exception:
-                pass
-
-        if self.imagen_firma and hasattr(self.imagen_firma, 'file'):
-            try:
-                self.imagen_firma.seek(0)
-                raw_firma = self.imagen_firma.read()
-                if raw_firma:
-                    self.firma_base64 = base64.b64encode(raw_firma).decode('utf-8')
-                    self.firma_mime = _mime_desde_nombre(self.imagen_firma.name)
-                self.imagen_firma.seek(0)
-            except Exception:
-                pass
-
-        super().save(*args, **kwargs)
 
     def __str__(self):
-        estado = "Activo" if self.activo else "Inactivo"
-        return f"{self.nombre} ({estado})"
+        return self.nombre
+
+    @staticmethod
+    def _convertir_a_base64(campo_imagen):
+        img = Image.open(campo_imagen)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        if max(img.size) > 1024:
+            img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=85)
+        return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    def save(self, *args, **kwargs):
+        if self.imagen_sello:
+            try:
+                self.sello_base64 = self._convertir_a_base64(self.imagen_sello)
+                self.sello_mime = "image/jpeg"
+            except Exception:
+                pass
+        if self.imagen_firma:
+            try:
+                self.firma_base64 = self._convertir_a_base64(self.imagen_firma)
+                self.firma_mime = "image/jpeg"
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
 
 
 class CursoBGU(models.Model):
@@ -83,125 +77,207 @@ class CursoBGU(models.Model):
     class Meta:
         verbose_name = "Curso BGU"
         verbose_name_plural = "Cursos BGU"
-        ordering = ['nombre']
 
     def __str__(self):
         return self.nombre
 
 
 class EstudiantePerfil(models.Model):
-    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True, blank=True)
-    apellidos_nombres = models.CharField(max_length=200, blank=True, null=True, verbose_name="Apellidos y Nombres")
-    cedula = models.CharField(max_length=20, unique=True, verbose_name="Cédula")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    apellidos_nombres = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name="Apellidos y Nombres"
+    )
+    cedula = models.CharField(max_length=20, unique=True, verbose_name="Número de Cédula")
     curso = models.ForeignKey(CursoBGU, on_delete=models.CASCADE, verbose_name="Curso BGU")
+    telefono_representante = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Celular del Representante"
+    )
+    correo_representante = models.EmailField(
+        blank=True, null=True, verbose_name="Correo del Representante"
+    )
 
     class Meta:
         verbose_name = "Estudiante"
         verbose_name_plural = "Estudiantes"
-        ordering = ['apellidos_nombres', 'cedula']
 
     @property
     def nombre_completo(self):
         if self.apellidos_nombres and self.apellidos_nombres.strip():
             return self.apellidos_nombres.strip()
         if self.user:
-            nombre_usuario = f"{self.user.last_name} {self.user.first_name}".strip()
-            if nombre_usuario:
-                return nombre_usuario
-            if self.user.username:
-                return self.user.username
-        return self.cedula
+            completo = f"{self.user.last_name} {self.user.first_name}".strip()
+            if completo:
+                return completo
+            return self.user.username
+        return f"Estudiante {self.cedula}"
 
     def __str__(self):
-        return f"{self.nombre_completo} - {self.curso}"
+        return f"{self.nombre_completo} ({self.cedula})"
 
 
 class Tarea(models.Model):
     TIPO_CHOICES = [
-        ('materia', 'Materia (Carátula, Presentación y Completitud: 6 a 10 pts)'),
-        ('deber', 'Deber (Conteo de Sellos/Firmas + Atrasados "A")'),
-        ('taller', 'Taller (Conteo de Sellos/Firmas + Atrasados "A")'),
+        ("MATERIA", "Materia"),
+        ("DEBER", "Deber"),
+        ("TALLER", "Taller"),
     ]
 
     titulo = models.CharField(max_length=200, verbose_name="Título de la Tarea / Cuaderno")
-    descripcion = models.TextField(verbose_name="Instrucciones o Temas a Revisar")
+    descripcion = models.TextField(blank=True, null=True, verbose_name="Instrucciones")
     curso = models.ForeignKey(CursoBGU, on_delete=models.CASCADE, verbose_name="Curso BGU")
-    fecha_limite = models.DateTimeField(verbose_name="Fecha Límite")
-    tipo_tarea = models.CharField(max_length=50, choices=TIPO_CHOICES, default='deber', verbose_name="Tipo")
+    fecha_limite = models.DateTimeField(default=timezone.now, verbose_name="Fecha Límite")
+    tipo_tarea = models.CharField(
+        max_length=20, choices=TIPO_CHOICES, default="DEBER", verbose_name="Tipo"
+    )
     total_sellos_esperados = models.PositiveIntegerField(
-        default=10,
-        verbose_name="Total de Sellos/Firmas Esperados",
-        help_text="Solo para Deberes o Talleres: indica cuántos sellos o firmas completos equivalen a 10 puntos."
+        default=10, verbose_name="Total de Sellos/Firmas Esperados"
     )
 
     class Meta:
         verbose_name = "Tarea / Cuaderno"
         verbose_name_plural = "Tareas y Cuadernos"
-        ordering = ['-fecha_limite']
 
     def __str__(self):
-        return f"[{self.get_tipo_tarea_display()}] {self.titulo} ({self.curso})"
+        return f"[{self.get_tipo_tarea_display()}] {self.titulo}"
 
 
 class EntregaTarea(models.Model):
-    ESTADO_MATERIA_CHOICES = [
-        ('completo', 'Completo'),
-        ('incompleto', 'Incompleto'),
-    ]
-
-    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, verbose_name="Tarea / Cuaderno")
-    estudiante = models.ForeignKey(EstudiantePerfil, on_delete=models.CASCADE, verbose_name="Estudiante")
-    archivo_estudiante = models.FileField(upload_to='tareas/', blank=True, null=True, verbose_name="Archivo Subido")
-
-    estado_materia = models.CharField(
-        max_length=20,
-        choices=ESTADO_MATERIA_CHOICES,
-        blank=True,
-        null=True,
-        verbose_name="Estado de Materia"
-    )
-    sellos_deberes = models.IntegerField(default=0, verbose_name="Sellos/Firmas Completos (1 pt)")
-    sellos_talleres = models.IntegerField(default=0, verbose_name="Sellos/Firmas Talleres (1 pt)")
-    sellos_atrasados = models.IntegerField(default=0, verbose_name="Sellos Atrasados 'A' (0.5 pts)")
-
-    nota_calculada = models.FloatField(default=6.0, verbose_name="Nota Calculada (/10)")
-    observacion_ia = models.TextField(blank=True, null=True, verbose_name="Detalle de Calificación IA")
-    fecha_envio = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Registro")
+    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE)
+    estudiante = models.ForeignKey(EstudiantePerfil, on_delete=models.CASCADE)
+    archivo = models.FileField(upload_to="entregas/", blank=True, null=True)
+    nota_calculada = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    estado_materia = models.CharField(max_length=100, blank=True, null=True)
+    sellos_deberes = models.PositiveIntegerField(default=0)
+    sellos_talleres = models.PositiveIntegerField(default=0)
+    sellos_atrasados = models.PositiveIntegerField(default=0)
+    observacion_ia = models.TextField(blank=True, null=True)
+    fecha_envio = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Registro de Tarea"
         verbose_name_plural = "Registros de Tareas"
-        ordering = ['-fecha_envio']
 
     def __str__(self):
-        return f"Entrega de {self.estudiante} para {self.tarea} ({self.nota_calculada}/10)"
+        return f"{self.estudiante.nombre_completo} - {self.tarea.titulo}"
 
 
 class Evaluacion(models.Model):
-    titulo = models.CharField(max_length=200, verbose_name="Título del Módulo / Lección")
-    descripcion = models.TextField(verbose_name="Instrucciones y Enlace del Simulador")
+    titulo = models.CharField(max_length=200, verbose_name="Título del Módulo / Evaluación")
+    descripcion = models.TextField(blank=True, null=True)
+    enlace_externo = models.URLField(blank=True, null=True)
     curso = models.ForeignKey(CursoBGU, on_delete=models.CASCADE, verbose_name="Curso BGU")
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Módulo de Clase y Lección"
-        verbose_name_plural = "Módulos de Clase y Lección"
-        ordering = ['-fecha_creacion']
+        verbose_name_plural = "Módulos de Clase y Lecciones"
 
     def __str__(self):
-        return f"{self.titulo} - {self.curso}"
+        return f"{self.titulo} - {self.curso.nombre}"
 
 
 class ResultadoEvaluacion(models.Model):
-    evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE, verbose_name="Módulo / Lección")
-    estudiante = models.ForeignKey(EstudiantePerfil, on_delete=models.CASCADE, verbose_name="Estudiante")
-    nota_obtenida = models.FloatField(verbose_name="Nota Obtenida")
-    fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Registro")
+    evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE)
+    estudiante = models.ForeignKey(EstudiantePerfil, on_delete=models.CASCADE)
+    nota_obtenida = models.DecimalField(max_digits=4, decimal_places=2)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Calificación de Lección"
         verbose_name_plural = "Calificaciones de Lecciones"
-        ordering = ['-fecha_registro']
 
     def __str__(self):
-        return f"{self.estudiante} - {self.evaluacion}: {self.nota_obtenida}"
+        return f"{self.estudiante.nombre_completo}: {self.nota_obtenida}"
+
+
+class ModuloInteractivo(models.Model):
+    ESPECIALIDADES = [
+        ("Contabilidad", "Contabilidad"),
+        ("Informática", "Informática"),
+        ("Ventas", "Ventas"),
+        ("Agropecuaria", "Agropecuaria"),
+        ("Tronco Común / BGU", "Tronco Común / BGU"),
+    ]
+    PARALELOS = [
+        ("A", "Paralelo A"),
+        ("B", "Paralelo B"),
+        ("C", "Paralelo C"),
+    ]
+
+    titulo = models.CharField(max_length=200, verbose_name="Tema del Módulo")
+    asignatura = models.CharField(
+        max_length=120, default="Matemática Aplicada", verbose_name="Asignatura"
+    )
+    institucion = models.CharField(
+        max_length=200,
+        default='UNIDAD EDUCATIVA TÉCNICA "DR. ENRIQUE NOBOA" • LA TRONCAL',
+        verbose_name="Encabezado Institucional",
+    )
+    curso = models.ForeignKey(CursoBGU, on_delete=models.CASCADE, verbose_name="Curso")
+    especialidad = models.CharField(
+        max_length=60,
+        choices=ESPECIALIDADES,
+        default="Informática",
+        verbose_name="Figura Profesional",
+    )
+    paralelo = models.CharField(
+        max_length=5, choices=PARALELOS, default="A", verbose_name="Paralelo"
+    )
+    destreza_indicadores = models.TextField(
+        blank=True, null=True, verbose_name="Destreza e Indicadores de Evaluación"
+    )
+    tiempo_minutos = models.PositiveIntegerField(
+        default=30, verbose_name="Tiempo de Evaluación (min)"
+    )
+    contenido_json = models.TextField(verbose_name="Contenido Estructurado (JSON IA)")
+    evaluacion_vinculada = models.ForeignKey(
+        Evaluacion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Evaluación Vinculada en Notas",
+    )
+    tarea_deber_vinculada = models.ForeignKey(
+        Tarea,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Tarea/Deber Vinculado",
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Módulo Interactivo IA"
+        verbose_name_plural = "Módulos Interactivos IA"
+        ordering = ["-fecha_creacion"]
+
+    def __str__(self):
+        return f"{self.titulo} ({self.curso})"
+
+
+class EsquelaIncumplimiento(models.Model):
+    estudiante = models.ForeignKey(
+        EstudiantePerfil, on_delete=models.CASCADE, verbose_name="Estudiante"
+    )
+    fecha_emision = models.DateTimeField(auto_now_add=True)
+    motivo_principal = models.CharField(
+        max_length=200,
+        default="Incumplimiento de Deberes, Talleres y Evaluaciones",
+        verbose_name="Motivo",
+    )
+    detalle_incumplimiento = models.TextField(verbose_name="Detalle de Actividades Pendientes")
+    plazo_entrega = models.CharField(
+        max_length=100, default="48 horas hábiles", verbose_name="Plazo de Regularización"
+    )
+    enviada_whatsapp = models.BooleanField(default=False, verbose_name="Notificada por WhatsApp")
+    observacion_docente = models.TextField(
+        blank=True, null=True, verbose_name="Observación Adicional"
+    )
+
+    class Meta:
+        verbose_name = "Esquela de Incumplimiento"
+        verbose_name_plural = "Esquelas de Incumplimiento"
+        ordering = ["-fecha_emision"]
+
+    def __str__(self):
+        return f"Esquela - {self.estudiante.nombre_completo} ({self.fecha_emision.strftime('%d/%m/%Y')})"

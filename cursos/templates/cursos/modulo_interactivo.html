@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ modulo.titulo }} • U.E. Dr. Enrique Noboa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-16">
+
+    <header class="bg-gradient-to-r from-slate-950 via-blue-950 to-slate-900 text-white py-8 px-4 shadow-xl">
+        <div class="max-w-5xl mx-auto text-center">
+            <p class="text-xs md:text-sm font-bold tracking-widest text-amber-400 uppercase">{{ modulo.institucion }}</p>
+            <h1 class="text-2xl md:text-4xl font-black tracking-tight mt-2 uppercase">MÓDULO DE {{ modulo.asignatura }}</h1>
+            <p class="text-blue-200 text-sm md:text-base mt-1 font-medium">Bachillerato Técnico • {{ modulo.titulo }} ({{ modulo.curso.nombre }})</p>
+
+            <div class="flex flex-wrap justify-center gap-3 mt-5 text-xs md:text-sm">
+                <span class="bg-white/10 border border-white/15 px-4 py-1.5 rounded-full">📚 Asignatura: <strong>{{ modulo.asignatura }}</strong></span>
+                <span class="bg-white/10 border border-white/15 px-4 py-1.5 rounded-full">⏱️ Tiempo Evaluación: <strong>{{ modulo.tiempo_minutos }} Minutos</strong></span>
+                <span class="bg-white/10 border border-white/15 px-4 py-1.5 rounded-full">📊 Valoración: <strong>20 Puntos (Equivalente a 10 pts)</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+        <div class="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 text-xs md:text-sm font-bold">
+            <button onclick="irPaso(1)" id="tab-1" class="py-3.5 px-3 border-b-4 border-blue-600 text-blue-700 flex items-center justify-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">1</span> Infografía y Materia
+            </button>
+            <button onclick="irPaso(2)" id="tab-2" class="py-3.5 px-3 border-b-4 border-transparent text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs">2</span> Tarea Guiada (6 Ej.)
+            </button>
+            <button onclick="irPaso(3)" id="tab-3" class="py-3.5 px-3 border-b-4 border-transparent text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs">3</span> Deber en Casa (10 Ej.)
+            </button>
+            <button onclick="irPaso(4)" id="tab-4" class="py-3.5 px-3 border-b-4 border-transparent text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs">4</span> Evaluación (20 Preg.)
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-4 mt-8 space-y-8">
+
+        <section class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm no-print">
+            <h2 class="text-lg font-extrabold text-slate-900 border-b-2 border-blue-600 inline-block pb-1 mb-4">1. Datos Informativos del Estudiante</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Cédula del Estudiante *</label>
+                    <input type="text" id="est-cedula" value="{{ cedula_inicial }}" onblur="buscarPorCedula()" placeholder="Ej: 0350043238" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:border-blue-600 focus:outline-none">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Apellidos y Nombres *</label>
+                    <input type="text" id="est-nombre" value="{% if estudiante_inicial %}{{ estudiante_inicial.nombre_completo }}{% endif %}" placeholder="Escribe tu cédula para autocompletar" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Asignatura</label>
+                    <input type="text" readonly value="{{ modulo.asignatura }}" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-100 font-semibold text-slate-700">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Figura Profesional (Especialidad Técnico) *</label>
+                    <select id="est-especialidad" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm">
+                        <option value="Informática" {% if modulo.especialidad == "Informática" %}selected{% endif %}>Informática</option>
+                        <option value="Contabilidad" {% if modulo.especialidad == "Contabilidad" %}selected{% endif %}>Contabilidad</option>
+                        <option value="Ventas" {% if modulo.especialidad == "Ventas" %}selected{% endif %}>Ventas</option>
+                        <option value="Agropecuaria" {% if modulo.especialidad == "Agropecuaria" %}selected{% endif %}>Agropecuaria</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Curso *</label>
+                    <input type="text" id="est-curso" value="{{ modulo.curso.nombre }}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Paralelo *</label>
+                    <select id="est-paralelo" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm">
+                        <option value="A" {% if modulo.paralelo == "A" %}selected{% endif %}>Paralelo A</option>
+                        <option value="B" {% if modulo.paralelo == "B" %}selected{% endif %}>Paralelo B</option>
+                        <option value="C" {% if modulo.paralelo == "C" %}selected{% endif %}>Paralelo C</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- PASO 1: INFOGRAFÍA -->
+        <div id="seccion-1" class="space-y-6">
+            <div class="bg-gradient-to-r from-blue-800 to-blue-600 text-white rounded-2xl p-6 shadow-md flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <span class="bg-blue-950/60 text-blue-200 text-xs font-bold px-3 py-1 rounded-full uppercase">Infografía Didáctica • {{ modulo.curso.nombre }}</span>
+                    <h2 class="text-2xl md:text-3xl font-black uppercase mt-2">{{ modulo.titulo }}</h2>
+                    <p class="text-blue-100 text-sm mt-1">{{ contenido.subtitulo }}</p>
+                </div>
+                <div class="bg-blue-950/50 border border-blue-400/30 rounded-xl px-5 py-3 text-right">
+                    <span class="block text-xs text-blue-200 font-bold uppercase">Notación General:</span>
+                    <span class="text-lg font-extrabold text-white">{{ contenido.notacion_general }}</span>
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <h3 class="text-center text-xs font-extrabold uppercase tracking-wider text-blue-900 mb-4">¿Cómo Funciona? (Anatomía del Concepto)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {% for p in contenido.anatomia_pasos %}
+                    <div class="border-2 {% if forloop.last %}border-emerald-500 bg-emerald-50/40{% else %}border-blue-500 bg-blue-50/30{% endif %} rounded-xl p-4 text-center">
+                        <p class="text-xs font-black {% if forloop.last %}text-emerald-700{% else %}text-blue-700{% endif %} uppercase">{{ p.paso }}</p>
+                        <p class="text-base font-bold text-slate-900 mt-2">{{ p.expresion }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {% for t in contenido.tarjetas_infografia %}
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+                    <div class="p-4 text-white font-bold flex items-center gap-3
+                        {% if t.color == 'emerald' %}bg-emerald-600
+                        {% elif t.color == 'purple' %}bg-purple-600
+                        {% elif t.color == 'amber' %}bg-amber-600
+                        {% elif t.color == 'rose' %}bg-rose-600
+                        {% else %}bg-blue-600{% endif %}">
+                        <span class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-sm font-black">{{ t.numero }}</span>
+                        <h4 class="text-base leading-tight">{{ t.titulo }}</h4>
+                    </div>
+                    <div class="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                        <div>
+                            <p class="text-sm text-slate-600 leading-relaxed">{{ t.explicacion }}</p>
+                            <div class="mt-3 bg-slate-100 border-l-4 border-blue-600 rounded-r-lg p-3 font-bold text-sm text-slate-900">
+                                {{ t.formula_clave }}
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
+                            <p class="text-xs font-extrabold text-emerald-700 uppercase mb-1">✓ Ejercicio Resuelto Paso a Paso</p>
+                            <p class="font-semibold text-slate-800 mb-2">{{ t.ejemplo_enunciado }}</p>
+                            <ul class="list-disc pl-4 space-y-1 text-slate-600 text-xs">
+                                {% for paso in t.ejemplo_pasos %}
+                                <li>{{ paso }}</li>
+                                {% endfor %}
+                            </ul>
+                            <div class="mt-3 inline-block bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full text-xs font-extrabold">
+                                Respuesta: {{ t.ejemplo_respuesta }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center pt-4">
+                <button onclick="irPaso(2)" class="bg-blue-700 hover:bg-blue-600 text-white font-extrabold px-8 py-4 rounded-xl shadow-lg">
+                    Continuar al Paso 2: Tarea Guiada (6 Ejercicios) →
+                </button>
+            </div>
+        </div>
+
+        <!-- PASO 2: TAREA GUIADA -->
+        <div id="seccion-2" class="hidden space-y-5">
+            <div class="bg-amber-50 border border-amber-300 rounded-2xl p-5">
+                <h2 class="text-lg font-extrabold text-amber-900">🧠 Tarea Guiada de Entrenamiento (6 Ejercicios)</h2>
+                <p class="text-sm text-amber-800 mt-1">Resuelve estos 6 ejercicios interactivos. Al calificar verás la solución detallada de cada uno para asegurar que dominas el tema.</p>
+            </div>
+
+            <div id="contenedor-guiada" class="space-y-4"></div>
+
+            <div class="flex flex-wrap gap-4 justify-between items-center pt-2">
+                <button onclick="calificarTareaGuiada()" class="bg-amber-600 hover:bg-amber-500 text-white font-extrabold px-6 py-3.5 rounded-xl shadow">
+                    ✓ Comprobar Tarea Guiada
+                </button>
+                <button onclick="irPaso(3)" class="bg-blue-700 hover:bg-blue-600 text-white font-extrabold px-6 py-3.5 rounded-xl shadow">
+                    Continuar al Paso 3: Deber en Casa (10 Ej.) →
+                </button>
+            </div>
+        </div>
+
+        <!-- PASO 3: DEBER EN CASA -->
+        <div id="seccion-3" class="hidden space-y-5">
+            <div class="bg-emerald-50 border border-emerald-300 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-extrabold text-emerald-900">📝 Deber para la Casa (10 Ejercicios)</h2>
+                    <p class="text-sm text-emerald-800">Copia y resuelve estos 10 ejercicios en tu cuaderno como respaldo de tu aprendizaje.</p>
+                </div>
+                <div class="flex gap-2 no-print">
+                    <button onclick="window.print()" class="bg-white border-2 border-blue-800 text-blue-900 font-extrabold px-4 py-2.5 rounded-xl text-xs hover:bg-blue-50">
+                        🖨️ IMPRIMIR LISTA DEL DEBER
+                    </button>
+                    {% if modulo.tarea_deber_vinculada %}
+                    <a href="{% url 'subir_tarea' modulo.tarea_deber_vinculada.id %}" target="_blank" class="bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs">
+                        📸 Subir Foto del Cuaderno Sellado
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-900 text-white text-xs uppercase">
+                        <tr>
+                            <th class="py-3.5 px-4 w-14">#</th>
+                            <th class="py-3.5 px-4 w-36">Tema</th>
+                            <th class="py-3.5 px-4">Enunciado del Ejercicio</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 text-sm">
+                        {% for d in contenido.deber_casa %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3.5 px-4 font-extrabold text-slate-900">{{ d.numero }}</td>
+                            <td class="py-3.5 px-4"><span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-bold">{{ d.tema }}</span></td>
+                            <td class="py-3.5 px-4 text-slate-800 font-medium">{{ d.enunciado }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <button onclick="irPaso(4)" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl text-base shadow-lg no-print">
+                🚀 PASO 4: COMENZAR EVALUACIÓN CALIFICADA (20 EJERCICIOS • {{ modulo.tiempo_minutos }}:00) →
+            </button>
+        </div>
+
+        <!-- PASO 4: EVALUACIÓN CALIFICADA -->
+        <div id="seccion-4" class="hidden space-y-5">
+            <div class="bg-slate-900 text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+                <div>
+                    <h2 class="text-lg font-extrabold">🎯 Evaluación Calificada (20 Preguntas • Sobre 10 Puntos)</h2>
+                    <p class="text-xs text-slate-300">Las preguntas y opciones están mezcladas individualmente. Asegúrate de haber ingresado tu cédula arriba.</p>
+                </div>
+                <div class="bg-red-600 px-5 py-2.5 rounded-xl font-mono text-xl font-black" id="reloj-eval">
+                    {{ modulo.tiempo_minutos }}:00
+                </div>
+            </div>
+
+            <div id="resultado-eval-banner" class="hidden bg-emerald-950 border-2 border-emerald-500 text-emerald-100 rounded-2xl p-6 text-center space-y-2"></div>
+
+            <div id="contenedor-eval" class="space-y-4"></div>
+
+            <button id="btn-enviar-eval" onclick="enviarEvaluacionFinal()" class="w-full bg-blue-700 hover:bg-blue-600 text-white font-black py-4 rounded-2xl text-lg shadow-xl">
+                ✅ Finalizar y Registrar Calificación Oficial
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        const DATOS_MODULO = {{ contenido_json_str|safe }};
+        const MODULO_ID = {{ modulo.id }};
+        const TIEMPO_SEGUNDOS_TOTAL = {{ modulo.tiempo_minutos }} * 60;
+        let segundosRestantes = TIEMPO_SEGUNDOS_TOTAL;
+        let intervaloReloj = null;
+        let preguntasMezcladas = [];
+        let evaluacionEnviada = false;
+
+        function mezclarArray(arr) {
+            const copia = [...arr];
+            for (let i = copia.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copia[i], copia[j]] = [copia[j], copia[i]];
+            }
+            return copia;
+        }
+
+        function irPaso(num) {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`seccion-${i}`).classList.toggle("hidden", i !== num);
+                const tab = document.getElementById(`tab-${i}`);
+                if (i === num) {
+                    tab.classList.add("border-blue-600", "text-blue-700");
+                    tab.classList.remove("border-transparent", "text-slate-500");
+                } else {
+                    tab.classList.remove("border-blue-600", "text-blue-700");
+                    tab.classList.add("border-transparent", "text-slate-500");
+                }
+            }
+            if (num === 4 && !intervaloReloj && !evaluacionEnviada) {
+                iniciarReloj();
+            }
+            window.scrollTo({ top: 180, behavior: "smooth" });
+        }
+
+        function renderizarTareaGuiada() {
+            const cont = document.getElementById("contenedor-guiada");
+            cont.innerHTML = DATOS_MODULO.tarea_guiada.map((q, idx) => `
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <span class="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full uppercase">${q.numero}. ${q.categoria}</span>
+                    <p class="font-bold text-slate-900 mt-3 mb-4">${q.pregunta}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${q.opciones.map((op, opIdx) => `
+                            <label class="flex items-center gap-3 border border-slate-200 hover:border-blue-500 rounded-xl p-3 cursor-pointer">
+                                <input type="radio" name="guiada_${idx}" value="${opIdx}" class="w-4 h-4 text-blue-600">
+                                <span class="text-sm font-medium">${op}</span>
+                            </label>
+                        `).join("")}
+                    </div>
+                    <div id="feedback_guiada_${idx}" class="hidden mt-3 p-3 rounded-xl text-xs font-semibold"></div>
+                </div>
+            `).join("");
+        }
+
+        function calificarTareaGuiada() {
+            DATOS_MODULO.tarea_guiada.forEach((q, idx) => {
+                const sel = document.querySelector(`input[name="guiada_${idx}"]:checked`);
+                const fb = document.getElementById(`feedback_guiada_${idx}`);
+                fb.classList.remove("hidden", "bg-emerald-50", "text-emerald-800", "bg-red-50", "text-red-800");
+                if (sel && parseInt(sel.value) === q.indice_correcto) {
+                    fb.classList.add("bg-emerald-50", "text-emerald-800");
+                    fb.innerHTML = `✅ ¡Correcto! ${q.explicacion}`;
+                } else {
+                    fb.classList.add("bg-red-50", "text-red-800");
+                    fb.innerHTML = `❌ Respuesta correcta: <strong>${q.opciones[q.indice_correcto]}</strong>. ${q.explicacion}`;
+                }
+            });
+            if (window.MathJax) MathJax.typesetPromise();
+        }
+
+        function renderizarEvaluacion() {
+            preguntasMezcladas = mezclarArray(DATOS_MODULO.evaluacion_20).map((q) => {
+                const opcionesConFlag = q.opciones.map((txt, i) => ({ txt, esCorrecta: i === q.indice_correcto }));
+                return { pregunta: q.pregunta, opciones: mezclarArray(opcionesConFlag) };
+            });
+
+            const cont = document.getElementById("contenedor-eval");
+            cont.innerHTML = preguntasMezcladas.map((q, idx) => `
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <p class="font-bold text-slate-900 mb-3"><span class="text-blue-700 font-black">${idx + 1}.</span> ${q.pregunta}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${q.opciones.map((op, opIdx) => `
+                            <label class="flex items-center gap-3 border border-slate-200 hover:border-blue-500 rounded-xl p-3 cursor-pointer">
+                                <input type="radio" name="eval_${idx}" value="${opIdx}" class="w-4 h-4 text-blue-600">
+                                <span class="text-sm font-medium">${op.txt}</span>
+                            </label>
+                        `).join("")}
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function iniciarReloj() {
+            intervaloReloj = setInterval(() => {
+                segundosRestantes--;
+                const m = String(Math.floor(segundosRestantes / 60)).padStart(2, "0");
+                const s = String(segundosRestantes % 60).padStart(2, "0");
+                document.getElementById("reloj-eval").innerText = `${m}:${s}`;
+                if (segundosRestantes <= 0) {
+                    clearInterval(intervaloReloj);
+                    enviarEvaluacionFinal(true);
+                }
+            }, 1000);
+        }
+
+        async function enviarEvaluacionFinal(porTiempo = false) {
+            if (evaluacionEnviada) return;
+            const cedula = document.getElementById("est-cedula").value.trim();
+            if (!cedula) {
+                alert("⚠️ Por favor ingresa tu Número de Cédula en la sección 1 antes de enviar la evaluación.");
+                return;
+            }
+            if (!porTiempo && !confirm("¿Estás seguro de finalizar y enviar tu evaluación?")) return;
+
+            evaluacionEnviada = true;
+            if (intervaloReloj) clearInterval(intervaloReloj);
+
+            let aciertos = 0;
+            preguntasMezcladas.forEach((q, idx) => {
+                const sel = document.querySelector(`input[name="eval_${idx}"]:checked`);
+                if (sel && q.opciones[parseInt(sel.value)].esCorrecta) {
+                    aciertos++;
+                }
+            });
+
+            const btn = document.getElementById("btn-enviar-eval");
+            btn.disabled = true;
+            btn.innerText = "⏳ Guardando calificación oficial...";
+
+            const resp = await fetch(`/api/modulo/${MODULO_ID}/calificar/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+                body: JSON.stringify({ cedula, aciertos, total: preguntasMezcladas.length })
+            });
+            const data = await resp.json();
+            const banner = document.getElementById("resultado-eval-banner");
+            banner.classList.remove("hidden");
+            if (data.ok) {
+                banner.innerHTML = `<p class="text-2xl font-black">🎓 ${data.mensaje}</p><p class="text-sm text-emerald-300">Tu calificación ya quedó registrada en el sistema del docente.</p>`;
+                btn.innerText = "✓ Calificación Registrada";
+            } else {
+                evaluacionEnviada = false;
+                btn.disabled = false;
+                btn.innerText = "✅ Finalizar y Registrar Calificación Oficial";
+                banner.classList.add("bg-red-950", "border-red-500");
+                banner.innerHTML = `<p class="font-bold">⚠️ ${data.mensaje}</p>`;
+            }
+        }
+
+        async function buscarPorCedula() {
+            const ced = document.getElementById("est-cedula").value.trim();
+            if (ced.length < 8) return;
+            const resp = await fetch(`/api/estudiante/?cedula=${encodeURIComponent(ced)}`);
+            const data = await resp.json();
+            if (data.encontrado) {
+                document.getElementById("est-nombre").value = data.nombre;
+                document.getElementById("est-curso").value = data.curso;
+                document.getElementById("est-especialidad").value = data.especialidad;
+                document.getElementById("est-paralelo").value = data.paralelo;
+            }
+        }
+
+        renderizarTareaGuiada();
+        renderizarEvaluacion();
+        if (document.getElementById("est-cedula").value) buscarPorCedula();
+    </script>
+</body>
+</html>

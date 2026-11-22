@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esquelas y Seguimiento de Incumplimiento • U.E. Dr. Enrique Noboa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-red-950/60 to-slate-900 border border-red-800/40 rounded-2xl p-6 mb-6">
+            <div>
+                <p class="text-xs font-bold tracking-widest text-amber-400 uppercase">Unidad Educativa Técnica "Dr. Enrique Noboa" • La Troncal</p>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1">📋 Centro de Esquelas y Notificación a Representantes</h1>
+                <p class="text-slate-300 text-sm mt-1">Auditoría automática de deberes, talleres, materia y lecciones pendientes por estudiante.</p>
+            </div>
+            <a href="/docente/" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold border border-slate-700">← Volver al Panel</a>
+        </div>
+
+        <form method="GET" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6 flex flex-wrap items-center gap-4">
+            <label class="text-sm font-bold text-slate-300">Filtrar por Curso:</label>
+            <select name="curso_id" onchange="this.form.submit()" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                <option value="">Todos los Cursos</option>
+                {% for c in cursos %}
+                <option value="{{ c.id }}" {% if curso_id_actual == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-x-auto shadow-xl">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead class="bg-slate-950 text-slate-400 text-xs uppercase border-b border-slate-800">
+                    <tr>
+                        <th class="py-3.5 px-4">Estado</th>
+                        <th class="py-3.5 px-4">Estudiante</th>
+                        <th class="py-3.5 px-4">Curso</th>
+                        <th class="py-3.5 px-4">Actividades / Lecciones Pendientes</th>
+                        <th class="py-3.5 px-4">Celular Representante</th>
+                        <th class="py-3.5 px-4 text-right">Acciones de Notificación</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for item in reporte %}
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="py-3.5 px-4 font-bold">
+                            {% if item.semaforo == 'rojo' %}
+                            <span class="bg-red-950 text-red-300 border border-red-600 px-2.5 py-1 rounded-full text-xs">🔴 Grave ({{ item.faltas }})</span>
+                            {% elif item.semaforo == 'amarillo' %}
+                            <span class="bg-amber-950 text-amber-300 border border-amber-600 px-2.5 py-1 rounded-full text-xs">🟡 Atraso ({{ item.faltas }})</span>
+                            {% else %}
+                            <span class="bg-emerald-950 text-emerald-300 border border-emerald-600 px-2.5 py-1 rounded-full text-xs">🟢 Al día</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-white">{{ item.estudiante.nombre_completo }}<br><span class="text-xs text-slate-400 font-normal">CI: {{ item.estudiante.cedula }}</span></td>
+                        <td class="py-3.5 px-4 text-slate-300 text-xs">{{ item.estudiante.curso.nombre }}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-300 max-w-xs">
+                            {% if item.pendientes %}
+                            <ul class="list-disc pl-4 space-y-1">
+                                {% for p in item.pendientes %}
+                                <li>{{ p }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <span class="text-emerald-400">Cumple con todas las actividades.</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <form method="POST" class="flex gap-1.5">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="guardar_telefono">
+                                <input type="hidden" name="estudiante_id" value="{{ item.estudiante.id }}">
+                                <input type="text" name="telefono_representante" value="{{ item.estudiante.telefono_representante|default:'' }}" placeholder="0991234567" class="w-28 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
+                                <button type="submit" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded-lg text-xs font-bold">💾</button>
+                            </form>
+                        </td>
+                        <td class="py-3.5 px-4 text-right space-x-2 whitespace-nowrap">
+                            {% if item.faltas > 0 %}
+                            <a href="{% url 'imprimir_esquela' item.estudiante.id %}" target="_blank" class="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs">
+                                📄 Esquela PDF
+                            </a>
+                            <a href="{{ item.whatsapp_url }}" target="_blank" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs">
+                                📲 WhatsApp Padre
+                            </a>
+                            {% else %}
+                            <span class="text-xs text-slate-500">Sin esquela</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
