@@ -73,6 +73,15 @@ def _formatear_whatsapp_ec(telefono):
     return limpio
 
 
+def _gemini_url(k):
+    import json, urllib.request
+    try:
+        d=json.loads(urllib.request.urlopen('https://generativelanguage.googleapis.com/v1beta/models?key='+k,timeout=10).read().decode())
+        ms=[m['name'] for m in d.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[]) and 'flash' in m.get('name','') and not any(x in m.get('name','') for x in ('tts','image','audio','embedding'))]
+        if ms: return 'https://generativelanguage.googleapis.com/v1beta/'+ms[0]+':generateContent?key='+k
+    except Exception: pass
+    return 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key='+k
+
 @staff_member_required
 def panel_docente_institucional(request):
     cursos = list(CursoBGU.objects.all().order_by("nombre"))
@@ -317,7 +326,7 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 },
             }
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+            url = _gemini_url(api_key)
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
