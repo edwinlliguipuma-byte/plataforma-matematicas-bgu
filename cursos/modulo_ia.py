@@ -4,6 +4,7 @@ import csv
 import json
 import base64
 import urllib.request
+from collections import defaultdict
 from urllib.parse import quote
 from PIL import Image
 
@@ -74,7 +75,7 @@ def _formatear_whatsapp_ec(telefono):
 
 @staff_member_required
 def panel_docente_institucional(request):
-    cursos = CursoBGU.objects.all().order_by("nombre")
+    cursos = list(CursoBGU.objects.all().order_by("nombre"))
     curso_id = request.GET.get("curso_id", "")
     exportar = request.GET.get("exportar", "")
 
@@ -84,65 +85,72 @@ def panel_docente_institucional(request):
     if curso_id:
         estudiantes_qs = estudiantes_qs.filter(curso_id=curso_id)
 
+    estudiantes = list(estudiantes_qs)
+    est_ids = [e.id for e in estudiantes]
+
+    prom_entregas = defaultdict(dict)
+    for row in (
+        EntregaTarea.objects.filter(estudiante_id__in=est_ids)
+        .values("estudiante_id", "tarea__tipo_tarea")
+        .annotate(p=Avg("nota_calculada"))
+    ):
+        prom_entregas[row["estudiante_id"]][row["tarea__tipo_tarea"]] = float(row["p"] or 0)
+
+    prom_evals_map = {}
+    for row in (
+        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
+        .values("estudiante_id")
+        .annotate(p=Avg("nota_obtenida"))
+    ):
+        prom_evals_map[row["estudiante_id"]] = float(row["p"] or 0)
+
+    tareas_por_curso = defaultdict(int)
+    for t in Tarea.objects.all().values("id", "curso_id"):
+        tareas_por_curso[t["curso_id"]] += 1
+
+    evals_por_curso = defaultdict(int)
+    for ev in Evaluacion.objects.all().values("id", "curso_id"):
+        evals_por_curso[ev["curso_id"]] += 1
+
+    tareas_ok_por_est = defaultdict(set)
+    for row in EntregaTarea.objects.filter(
+        estudiante_id__in=est_ids, nota_calculada__gte=7
+    ).values("estudiante_id", "tarea_id"):
+        tareas_ok_por_est[row["estudiante_id"]].add(row["tarea_id"])
+
+    evals_ok_por_est = defaultdict(set)
+    for row in ResultadoEvaluacion.objects.filter(
+        estudiante_id__in=est_ids, nota_obtenida__gte=7
+    ).values("estudiante_id", "evaluacion_id"):
+        evals_ok_por_est[row["estudiante_id"]].add(row["evaluacion_id"])
+
     filas = []
     total_con_pendientes = 0
 
-    for est in estudiantes_qs:
-        prom_materia = (
-            EntregaTarea.objects.filter(estudiante=est, tarea__tipo_tarea="MATERIA").aggregate(
-                p=Avg("nota_calculada")
-            )["p"]
-            or 0
-        )
-        prom_deberes = (
-            EntregaTarea.objects.filter(estudiante=est, tarea__tipo_tarea="DEBER").aggregate(
-                p=Avg("nota_calculada")
-            )["p"]
-            or 0
-        )
-        prom_talleres = (
-            EntregaTarea.objects.filter(estudiante=est, tarea__tipo_tarea="TALLER").aggregate(
-                p=Avg("nota_calculada")
-            )["p"]
-            or 0
-        )
-        prom_evals = (
-            ResultadoEvaluacion.objects.filter(estudiante=est).aggregate(p=Avg("nota_obtenida"))[
-                "p"
-            ]
-            or 0
-        )
+    for est in estudiantes:
+        p_mat = prom_entregas[est.id].get("MATERIA", 0.0)
+        p_deb = prom_entregas[est.id].get("DEBER", 0.0)
+        p_tal = prom_entregas[est.id].get("TALLER", 0.0)
+        p_eva = prom_evals_map.get(est.id, 0.0)
 
-        notas_activas = [
-            float(n) for n in [prom_materia, prom_deberes, prom_talleres, prom_evals] if n > 0
-        ]
+        notas_activas = [n for n in (p_mat, p_deb, p_tal, p_eva) if n > 0]
         promedio_final = round(sum(notas_activas) / len(notas_activas), 2) if notas_activas else 0.0
 
-        tareas_total = Tarea.objects.filter(curso=est.curso).count()
-        tareas_ok = (
-            EntregaTarea.objects.filter(estudiante=est, nota_calculada__gte=7)
-            .values("tarea_id")
-            .distinct()
-            .count()
-        )
-        evals_total = Evaluacion.objects.filter(curso=est.curso).count()
-        evals_ok = (
-            ResultadoEvaluacion.objects.filter(estudiante=est, nota_obtenida__gte=7)
-            .values("evaluacion_id")
-            .distinct()
-            .count()
-        )
-        pendientes = max(0, (tareas_total - tareas_ok) + (evals_total - evals_ok))
+        tot_t = tareas_por_curso.get(est.curso_id, 0)
+        ok_t = len(tareas_ok_por_est.get(est.id, set()))
+        tot_e = evals_por_curso.get(est.curso_id, 0)
+        ok_e = len(evals_ok_por_est.get(est.id, set()))
+        pendientes = max(0, (tot_t - ok_t) + (tot_e - ok_e))
         if pendientes > 0:
             total_con_pendientes += 1
 
         filas.append(
             {
                 "estudiante": est,
-                "materia": round(float(prom_materia), 2),
-                "deberes": round(float(prom_deberes), 2),
-                "talleres": round(float(prom_talleres), 2),
-                "evaluaciones": round(float(prom_evals), 2),
+                "materia": round(p_mat, 2),
+                "deberes": round(p_deb, 2),
+                "talleres": round(p_tal, 2),
+                "evaluaciones": round(p_eva, 2),
                 "promedio": promedio_final,
                 "pendientes": pendientes,
             }
@@ -182,6 +190,11 @@ def panel_docente_institucional(request):
             )
         return response
 
+    try:
+        total_modulos = ModuloInteractivo.objects.count()
+    except Exception:
+        total_modulos = 0
+
     return render(
         request,
         "cursos/panel_docente.html",
@@ -190,7 +203,7 @@ def panel_docente_institucional(request):
             "curso_id_actual": curso_id,
             "filas": filas,
             "total_estudiantes": len(filas),
-            "total_modulos": ModuloInteractivo.objects.count(),
+            "total_modulos": total_modulos,
             "total_con_pendientes": total_con_pendientes,
         },
     )
@@ -441,7 +454,7 @@ def api_guardar_evaluacion_modulo(request, modulo_id):
 
 @staff_member_required
 def centro_esquelas(request):
-    cursos = CursoBGU.objects.all().order_by("nombre")
+    cursos = list(CursoBGU.objects.all().order_by("nombre"))
     curso_id = request.GET.get("curso_id", "")
 
     if request.method == "POST":
@@ -468,32 +481,39 @@ def centro_esquelas(request):
     if curso_id:
         estudiantes_qs = estudiantes_qs.filter(curso_id=curso_id)
 
+    estudiantes = list(estudiantes_qs)
+    est_ids = [e.id for e in estudiantes]
+
+    tareas_por_curso = defaultdict(list)
+    for t in Tarea.objects.all():
+        tareas_por_curso[t.curso_id].append(t)
+
+    evals_por_curso = defaultdict(list)
+    for ev in Evaluacion.objects.all():
+        evals_por_curso[ev.curso_id].append(ev)
+
+    entregas_map = {}
+    for ent in EntregaTarea.objects.filter(estudiante_id__in=est_ids).order_by("nota_calculada"):
+        entregas_map[(ent.estudiante_id, ent.tarea_id)] = ent
+
+    resultados_map = {}
+    for res in ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids).order_by(
+        "nota_obtenida"
+    ):
+        resultados_map[(res.estudiante_id, res.evaluacion_id)] = res
+
     reporte = []
-    for est in estudiantes_qs:
-        tareas_curso = Tarea.objects.filter(curso=est.curso)
-        evals_curso = Evaluacion.objects.filter(curso=est.curso)
-
-        entregas_ids = set(
-            EntregaTarea.objects.filter(estudiante=est, nota_calculada__gte=7).values_list(
-                "tarea_id", flat=True
-            )
-        )
-        evals_ids = set(
-            ResultadoEvaluacion.objects.filter(estudiante=est, nota_obtenida__gte=7).values_list(
-                "evaluacion_id", flat=True
-            )
-        )
-
+    for est in estudiantes:
         pendientes = []
-        for t in tareas_curso:
-            if t.id not in entregas_ids:
-                ent = EntregaTarea.objects.filter(estudiante=est, tarea=t).first()
+        for t in tareas_por_curso.get(est.curso_id, []):
+            ent = entregas_map.get((est.id, t.id))
+            if not ent or ent.nota_calculada < 7:
                 estado_txt = f"Nota baja ({ent.nota_calculada}/10)" if ent else "Sin entregar"
                 pendientes.append(f"[{t.get_tipo_tarea_display()}] {t.titulo} ({estado_txt})")
 
-        for ev in evals_curso:
-            if ev.id not in evals_ids:
-                res = ResultadoEvaluacion.objects.filter(estudiante=est, evaluacion=ev).first()
+        for ev in evals_por_curso.get(est.curso_id, []):
+            res = resultados_map.get((est.id, ev.id))
+            if not res or res.nota_obtenida < 7:
                 estado_txt = f"Nota baja ({res.nota_obtenida}/10)" if res else "No rendida"
                 pendientes.append(f"[Lección/Evaluación] {ev.titulo} ({estado_txt})")
 
