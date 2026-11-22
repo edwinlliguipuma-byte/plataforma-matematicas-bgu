@@ -63,9 +63,14 @@ class CursoBGUAdmin(admin.ModelAdmin):
 
 @admin.register(EstudiantePerfil)
 class EstudiantePerfilAdmin(admin.ModelAdmin):
-    list_display = ('apellidos_nombres', 'cedula', 'curso')
-    search_fields = ('apellidos_nombres', 'cedula', 'user__first_name', 'user__last_name')
+    list_display = ('mostrar_nombre', 'cedula', 'curso')
+    search_fields = ('apellidos_nombres', 'cedula', 'user__first_name', 'user__last_name', 'user__username')
     list_filter = ('curso',)
+
+    def mostrar_nombre(self, obj):
+        return obj.nombre_completo
+    mostrar_nombre.short_description = "Apellidos y Nombres"
+    mostrar_nombre.admin_order_field = 'user__last_name'
 
 
 @admin.register(Tarea)
@@ -86,7 +91,7 @@ class TareaAdmin(admin.ModelAdmin):
 @admin.register(EntregaTarea)
 class EntregaTareaAdmin(admin.ModelAdmin):
     list_display = (
-        'estudiante',
+        'mostrar_estudiante',
         'tarea',
         'nota_calculada',
         'estado_materia',
@@ -96,8 +101,12 @@ class EntregaTareaAdmin(admin.ModelAdmin):
         'fecha_envio',
     )
     list_filter = ('tarea__tipo_tarea', 'estudiante__curso', 'tarea')
-    search_fields = ('estudiante__apellidos_nombres', 'estudiante__cedula', 'tarea__titulo')
+    search_fields = ('estudiante__apellidos_nombres', 'estudiante__user__last_name', 'estudiante__user__first_name', 'estudiante__cedula', 'tarea__titulo')
     readonly_fields = ('fecha_envio',)
+
+    def mostrar_estudiante(self, obj):
+        return obj.estudiante.nombre_completo
+    mostrar_estudiante.short_description = "Estudiante"
 
 
 @admin.register(Evaluacion)
@@ -117,6 +126,10 @@ class EvaluacionAdmin(admin.ModelAdmin):
 
 @admin.register(ResultadoEvaluacion)
 class ResultadoEvaluacionAdmin(admin.ModelAdmin):
-    list_display = ('estudiante', 'evaluacion', 'nota_obtenida', 'fecha_registro')
-    search_fields = ('estudiante__apellidos_nombres', 'estudiante__cedula')
+    list_display = ('mostrar_estudiante', 'evaluacion', 'nota_obtenida', 'fecha_registro')
+    search_fields = ('estudiante__apellidos_nombres', 'estudiante__user__last_name', 'estudiante__user__first_name', 'estudiante__cedula')
     list_filter = ('estudiante__curso', 'evaluacion')
+
+    def mostrar_estudiante(self, obj):
+        return obj.estudiante.nombre_completo
+    mostrar_estudiante.short_description = "Estudiante"
