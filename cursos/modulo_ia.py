@@ -368,7 +368,7 @@ CANTIDADES EXACTAS OBLIGATORIAS:
 - "evaluacion_20": exactamente 20 preguntas de opción múltiple (4 opciones cada una, indice_correcto de 0 a 3).
 """
             prompt += "\nREGLA DE VELOCIDAD: Sé directo y conciso en cada explicación y opción (máximo 2 líneas por explicación) para responder rápido.\n"
-        parts = [{"text": prompt}]
+            parts = [{"text": prompt}]
             for foto in fotos[:3]:
                 b64_img = _optimizar_imagen_b64(foto)
                 parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
