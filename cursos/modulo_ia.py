@@ -77,12 +77,12 @@ def _gemini_url(k):
     import json, urllib.request
     k = (k or "").strip().strip('"').strip("'")
     pref = [
-        "models/gemini-2.5-flash",
-        "models/gemini-2.0-flash",
-        "models/gemini-2.0-flash-001",
-        "models/gemini-2.0-flash-lite",
+        "models/gemini-3.8-flash",
+        "models/gemini-3.5-flash",
+        "models/gemini-3.0-flash",
         "models/gemini-flash-latest",
-        "models/gemini-2.5-pro",
+        "models/gemini-3.8-pro",
+        "models/gemini-pro-latest",
     ]
     try:
         u = f"https://generativelanguage.googleapis.com/v1beta/models?key={k}"
@@ -90,19 +90,20 @@ def _gemini_url(k):
         ms = [
             m["name"] for m in d.get("models", [])
             if "generateContent" in m.get("supportedGenerationMethods", [])
-            and not any(x in m.get("name", "").lower() for x in ("tts", "image", "audio", "embedding", "exp", "preview", "1.5", "vision", "aqa", "veo"))
+            and "gemini" in m.get("name", "").lower()
+            and not any(x in m.get("name", "").lower() for x in ("tts", "image", "audio", "embedding", "exp", "preview", "1.5", "2.0", "2.5", "vision", "aqa", "veo"))
         ]
         for m in pref:
             if m in ms:
                 return f"https://generativelanguage.googleapis.com/v1beta/{m}:generateContent?key={k}"
-        fl = [m for m in ms if "flash" in m.lower()]
+        fl = sorted([m for m in ms if "flash" in m.lower()], reverse=True)
         if fl:
             return f"https://generativelanguage.googleapis.com/v1beta/{fl[0]}:generateContent?key={k}"
         if ms:
-            return f"https://generativelanguage.googleapis.com/v1beta/{ms[0]}:generateContent?key={k}"
+            return f"https://generativelanguage.googleapis.com/v1beta/{sorted(ms, reverse=True)[0]}:generateContent?key={k}"
     except Exception:
         pass
-    return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={k}"
+    return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={k}"
 
 @staff_member_required
 def panel_docente_institucional(request):
