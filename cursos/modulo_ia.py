@@ -73,6 +73,40 @@ def _formatear_whatsapp_ec(telefono):
     return limpio
 
 
+def _gemini_urlopen(req, timeout=90):
+    import json, time, urllib.request, urllib.error
+    orig_url = req.full_url if hasattr(req, "full_url") else str(req)
+    if "generativelanguage.googleapis.com" not in orig_url or ":generateContent" not in orig_url:
+        return urllib.request.urlopen(req, timeout=timeout)
+    base_part, q_part = orig_url.split("?", 1) if "?" in orig_url else (orig_url, "")
+    k = ""
+    for seg in q_part.split("&"):
+        if seg.startswith("key="):
+            k = seg[4:]
+    cands = [orig_url]
+    if k:
+        for alt in ("models/gemini-3.8-flash", "models/gemini-3.5-flash", "models/gemini-3.0-flash", "models/gemini-flash-latest", "models/gemini-3.8-pro", "models/gemini-pro-latest"):
+            u_alt = f"https://generativelanguage.googleapis.com/v1beta/{alt}:generateContent?key={k}"
+            if u_alt not in cands:
+                cands.append(u_alt)
+    last_err = None
+    for idx, u_try in enumerate(cands[:4]):
+        r_try = urllib.request.Request(u_try, data=req.data, headers=dict(req.header_items()), method=req.get_method())
+        for intento in range(2):
+            try:
+                return urllib.request.urlopen(r_try, timeout=timeout)
+            except urllib.error.HTTPError as he:
+                last_err = he
+                if he.code in (429, 500, 502, 503, 504):
+                    time.sleep(1.5)
+                    continue
+                if he.code == 404:
+                    break
+                raise
+    if last_err:
+        raise last_err
+    return urllib.request.urlopen(req, timeout=timeout)
+
 def _gemini_url(k):
     import json, urllib.request
     k = (k or "").strip().strip('"').strip("'")
@@ -357,7 +391,7 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=90) as resp:
+                with _gemini_urlopen(req, timeout=90) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                 raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
                 parsed = json.loads(raw_text)
