@@ -93,7 +93,7 @@ def _gemini_urlopen(req, timeout=90):
     for u_try in cands[:3]:
         r_try = urllib.request.Request(u_try, data=req.data, headers=dict(req.header_items()), method=req.get_method())
         try:
-            return urllib.request.urlopen(r_try, timeout=85)
+            return urllib.request.urlopen(r_try, timeout=165)
         except urllib.error.HTTPError as he:
             last_err = he
             if he.code in (404, 429, 500, 502, 503, 504):
@@ -102,7 +102,7 @@ def _gemini_urlopen(req, timeout=90):
             raise
     if last_err:
         raise last_err
-    return urllib.request.urlopen(req, timeout=85)
+    return urllib.request.urlopen(req, timeout=165)
 
 def _gemini_url(k):
     import json, urllib.request
@@ -367,7 +367,8 @@ CANTIDADES EXACTAS OBLIGATORIAS:
 - "deber_casa": exactamente 10 ejercicios variados ordenados de menor a mayor dificultad.
 - "evaluacion_20": exactamente 20 preguntas de opción múltiple (4 opciones cada una, indice_correcto de 0 a 3).
 """
-            parts = [{"text": prompt}]
+            prompt += "\nREGLA DE VELOCIDAD: Sé directo y conciso en cada explicación y opción (máximo 2 líneas por explicación) para responder rápido.\n"
+        parts = [{"text": prompt}]
             for foto in fotos[:3]:
                 b64_img = _optimizar_imagen_b64(foto)
                 parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
