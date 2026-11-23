@@ -75,12 +75,34 @@ def _formatear_whatsapp_ec(telefono):
 
 def _gemini_url(k):
     import json, urllib.request
+    k = (k or "").strip().strip('"').strip("'")
+    pref = [
+        "models/gemini-2.5-flash",
+        "models/gemini-2.0-flash",
+        "models/gemini-2.0-flash-001",
+        "models/gemini-2.0-flash-lite",
+        "models/gemini-flash-latest",
+        "models/gemini-2.5-pro",
+    ]
     try:
-        d=json.loads(urllib.request.urlopen('https://generativelanguage.googleapis.com/v1beta/models?key='+k,timeout=10).read().decode())
-        ms=[m['name'] for m in d.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[]) and 'flash' in m.get('name','') and not any(x in m.get('name','') for x in ('tts','image','audio','embedding'))]
-        if ms: return 'https://generativelanguage.googleapis.com/v1beta/'+ms[0]+':generateContent?key='+k
-    except Exception: pass
-    return 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key='+k
+        u = f"https://generativelanguage.googleapis.com/v1beta/models?key={k}"
+        d = json.loads(urllib.request.urlopen(u, timeout=12).read().decode("utf-8"))
+        ms = [
+            m["name"] for m in d.get("models", [])
+            if "generateContent" in m.get("supportedGenerationMethods", [])
+            and not any(x in m.get("name", "").lower() for x in ("tts", "image", "audio", "embedding", "exp", "preview", "1.5", "vision", "aqa", "veo"))
+        ]
+        for m in pref:
+            if m in ms:
+                return f"https://generativelanguage.googleapis.com/v1beta/{m}:generateContent?key={k}"
+        fl = [m for m in ms if "flash" in m.lower()]
+        if fl:
+            return f"https://generativelanguage.googleapis.com/v1beta/{fl[0]}:generateContent?key={k}"
+        if ms:
+            return f"https://generativelanguage.googleapis.com/v1beta/{ms[0]}:generateContent?key={k}"
+    except Exception:
+        pass
+    return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={k}"
 
 @staff_member_required
 def panel_docente_institucional(request):
@@ -360,6 +382,10 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 )
                 return redirect("ver_modulo_interactivo", modulo_id=modulo.id)
             except Exception as e:
+                _b = e.read().decode('utf-8', errors='ignore')[:260] if hasattr(e, 'read') else ''
+                _u = locals().get('url', '').split('?')[0].split('/')[-1]
+                _kl = len((locals().get('api_key') or '').strip())
+                if _b or _u: e = Exception(f'{e} [{_u} | key={_kl}] {_b}')
                 error_msg = f"Ocurrió un inconveniente al generar con Gemini: {str(e)}"
 
     return render(
@@ -458,6 +484,10 @@ def api_guardar_evaluacion_modulo(request, modulo_id):
             }
         )
     except Exception as e:
+        _b = e.read().decode('utf-8', errors='ignore')[:260] if hasattr(e, 'read') else ''
+        _u = locals().get('url', '').split('?')[0].split('/')[-1]
+        _kl = len((locals().get('api_key') or '').strip())
+        if _b or _u: e = Exception(f'{e} [{_u} | key={_kl}] {_b}')
         return JsonResponse({"ok": False, "mensaje": str(e)}, status=400)
 
 
