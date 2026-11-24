@@ -412,5 +412,183 @@
         renderizarEvaluacion();
         if (document.getElementById("est-cedula").value) buscarPorCedula();
     </script>
+<!-- KATEX_MATH_RENDERER_START -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<style>
+  .katex {
+    font-size: 1.02em;
+    color: inherit !important;
+    white-space: normal !important;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  .katex .base {
+    white-space: normal !important;
+    max-width: 100%;
+  }
+  .katex .mord.text {
+    white-space: normal !important;
+  }
+  .katex-display {
+    margin: 0.45em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+  }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script>
+(function() {
+  function escHtml(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function unwrapTextCmds(s) {
+    // Convierte \text{...}, \textbf{...}, \textit{...}, \textrm{...} sueltos en texto limpio
+    let prev;
+    do {
+      prev = s;
+      s = s.replace(/\\(?:text|textbf|textit|textrm|mathrm)\{([^{}]*)\}/g, "$1");
+    } while (s !== prev);
+    return s;
+  }
+
+  function renderTexSafe(tex, displayMode) {
+    try {
+      return katex.renderToString(tex.trim(), {
+        throwOnError: false,
+        displayMode: !!displayMode,
+        strict: false
+      });
+    } catch (e) {
+      return escHtml(tex);
+    }
+  }
+
+  function isPureMathLine(str) {
+    const t = str.trim();
+    if (!t || t.length > 260) return false;
+    const hasLatexCmd = /\\(int|frac|dfrac|tfrac|sqrt|left|right|cdot|times|div|pm|mp|sum|prod|lim|infty|pi|theta|alpha|beta|gamma|Delta|le|ge|neq|approx|equiv|ln|log|sin|cos|tan|sec|csc|cot|vec|overline|underline|,|;|quad)/.test(t);
+    const hasPowerOrSub = /[A-Za-z0-9)\]}]\s*[\^_]\s*(\{[^}]+\}|[-+]?[A-Za-z0-9]+)/.test(t);
+    if (!hasLatexCmd && !hasPowerOrSub) return false;
+    const noCmds = t.replace(/\\[a-zA-Z]+/g, " ");
+    const proseWords = (noCmds.match(/\b[a-záéíóúñÁÉÍÓÚÑ]{4,}\b/g) || []).filter(
+      w => !/^(sin|cos|tan|sec|csc|cot|log|mod|lim|max|min|para|todo)$/i.test(w)
+    );
+    return proseWords.length <= 2;
+  }
+
+  function formatMixedText(text) {
+    let out = "";
+    let lastIdx = 0;
+    const delimRegex = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$(?!\s*\d+(?:[.,]\d+)?(?:\s|[.,;:!?)]|$))([^$\n]+?)\$)/g;
+    let m;
+    while ((m = delimRegex.exec(text)) !== null) {
+      if (m.index > lastIdx) {
+        out += formatRawLatexInline(text.slice(lastIdx, m.index));
+      }
+      const token = m[0];
+      if (token.startsWith("$$")) {
+        out += renderTexSafe(token.slice(2, -2), true);
+      } else if (token.startsWith("\\[")) {
+        out += renderTexSafe(token.slice(2, -2), true);
+      } else if (token.startsWith("\\(")) {
+        out += renderTexSafe(token.slice(2, -2), false);
+      } else {
+        out += renderTexSafe(token.slice(1, -1), false);
+      }
+      lastIdx = delimRegex.lastIndex;
+    }
+    if (lastIdx < text.length) {
+      out += formatRawLatexInline(text.slice(lastIdx));
+    }
+    return out;
+  }
+
+  function formatRawLatexInline(segment) {
+    if (!segment) return "";
+    segment = unwrapTextCmds(segment);
+    if (isPureMathLine(segment)) {
+      return renderTexSafe(segment, false);
+    }
+    const inlineMathRegex = /((?:\\(?:int|dfrac|tfrac|frac|sqrt|left|right|cdot|times|div|pm|mp|sum|lim|infty|pi|theta|alpha|beta|le|ge|neq|approx|ln|log|sin|cos|tan)(?:\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*|[A-Za-z0-9)\]}]+\s*\^\s*(?:\{[^{}]+\}|[-+]?[A-Za-z0-9]+)|[A-Za-z]\s*_\s*(?:\{[^{}]+\}|[0-9]+))(?:\s*(?:[+\-=<>*/(),.;]|\\,|\\;|\\left\(|\\right\)|\\frac\{[^{}]*\}\{[^{}]*\}|\\sqrt\{[^{}]*\}|\\cdot|\\times|\\div|\\pm|\\le|\\ge|\\neq|[A-Za-z0-9]+\s*\^\s*(?:\{[^{}]+\}|[-+]?[A-Za-z0-9]+)|[A-Za-z0-9]+))*)/g;
+    let res = "";
+    let idx = 0;
+    let match;
+    while ((match = inlineMathRegex.exec(segment)) !== null) {
+      const frag = match[0].trim();
+      if (!/[\\^_]/.test(frag)) continue;
+      if (match.index > idx) {
+        res += escHtml(segment.slice(idx, match.index));
+      }
+      let trail = "";
+      let core = frag;
+      if (/[.,;:!?]$/.test(core) && !/\\,$/.test(core)) {
+        trail = core.slice(-1);
+        core = core.slice(0, -1);
+      }
+      res += renderTexSafe(core, false) + escHtml(trail);
+      idx = inlineMathRegex.lastIndex;
+    }
+    if (idx < segment.length) {
+      res += escHtml(segment.slice(idx));
+    }
+    return res;
+  }
+
+  function renderAllMath(root) {
+    if (typeof katex === "undefined") return;
+    const container = root || document.body;
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(node) {
+        if (!node.nodeValue || !/[\\^_$]/.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        const p = node.parentElement;
+        if (!p) return NodeFilter.FILTER_REJECT;
+        if (p.closest("script, style, textarea, input, select, option, code, pre, .katex")) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes = [];
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function(textNode) {
+      const orig = textNode.nodeValue;
+      const html = formatMixedText(orig);
+      if (html && html !== escHtml(orig)) {
+        const span = document.createElement("span");
+        span.innerHTML = html;
+        textNode.parentNode.replaceChild(span, textNode);
+      }
+    });
+  }
+
+  function bootMath() {
+    if (typeof katex === "undefined") {
+      setTimeout(bootMath, 80);
+      return;
+    }
+    renderAllMath(document.body);
+    const obs = new MutationObserver(function(muts) {
+      muts.forEach(function(m) {
+        m.addedNodes.forEach(function(nd) {
+          if (nd.nodeType === 1 && !nd.classList.contains("katex")) {
+            renderAllMath(nd);
+          }
+        });
+      });
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootMath);
+  } else {
+    bootMath();
+  }
+})();
+</script>
+<!-- KATEX_MATH_RENDERER_END -->
 </body>
 </html>
