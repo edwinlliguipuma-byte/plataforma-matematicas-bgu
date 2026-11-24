@@ -281,7 +281,7 @@ def crear_modulo_ia(request):
     error_msg = None
 
     if request.method == "POST":
-        _raw_curso = (request.POST.get("curso") or "").strip()
+        _raw_curso = (request.POST.get("curso") or request.POST.get("curso_id") or "").strip()
         if _raw_curso in ("2DO_BGU", "3ERO_BGU"):
             _pref = "2DO" if _raw_curso == "2DO_BGU" else "3RO"
             _esp_in = (request.POST.get("especialidad") or "").strip().lower()
@@ -309,6 +309,7 @@ def crear_modulo_ia(request):
             if _elegido:
                 _post_mut = request.POST.copy()
                 _post_mut["curso"] = str(_elegido.id)
+                _post_mut["curso_id"] = str(_elegido.id)
                 request.POST = _post_mut
         titulo = request.POST.get("titulo", "").strip()
         asignatura = request.POST.get("asignatura", "Matemática Aplicada").strip()
