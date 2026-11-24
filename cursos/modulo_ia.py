@@ -1,3 +1,4 @@
+import re
 import os
 import io
 import csv
@@ -280,6 +281,35 @@ def crear_modulo_ia(request):
     error_msg = None
 
     if request.method == "POST":
+        _raw_curso = (request.POST.get("curso") or "").strip()
+        if _raw_curso in ("2DO_BGU", "3ERO_BGU"):
+            _pref = "2DO" if _raw_curso == "2DO_BGU" else "3RO"
+            _esp_in = (request.POST.get("especialidad") or "").strip().lower()
+            _par_in = (request.POST.get("paralelo") or "").strip().lower()
+            _par_letra = re.sub(r"^paralelo\s+", "", _par_in).strip()
+            def _es_nivel(nom):
+                low = (nom or "").strip().lower()
+                if _pref == "2DO":
+                    return bool(re.match(r"^(2do|2°|segundo)\b", low))
+                return bool(re.match(r"^(3ro|3°|tercero)\b", low))
+            _candidatos = [c for c in CursoBGU.objects.all().order_by("id") if _es_nivel(c.nombre)]
+            _elegido = None
+            for _c in _candidatos:
+                _cn = _c.nombre.lower()
+                if (_esp_in and _esp_in in _cn) and (_par_letra and re.search(rf"['\"\s]{re.escape(_par_letra)}(?:['\"\s]|$)", _cn)):
+                    _elegido = _c
+                    break
+            if not _elegido and _esp_in:
+                for _c in _candidatos:
+                    if _esp_in in _c.nombre.lower():
+                        _elegido = _c
+                        break
+            if not _elegido and _candidatos:
+                _elegido = _candidatos[0]
+            if _elegido:
+                _post_mut = request.POST.copy()
+                _post_mut["curso"] = str(_elegido.id)
+                request.POST = _post_mut
         titulo = request.POST.get("titulo", "").strip()
         asignatura = request.POST.get("asignatura", "Matemática Aplicada").strip()
         institucion = request.POST.get(
