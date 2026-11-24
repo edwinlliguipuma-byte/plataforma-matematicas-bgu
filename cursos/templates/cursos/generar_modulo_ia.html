@@ -98,7 +98,17 @@
 
             <input type="hidden" name="institucion" value='UNIDAD EDUCATIVA TÉCNICA "DR. ENRIQUE NOBOA" • LA TRONCAL'>
 
-            <button id="btn-generar" type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-4 rounded-xl text-lg shadow-lg transition">
+            
+    <!-- REPLICACION_NIVEL_CHECKBOX -->
+    <div style="margin: 14px 0; padding: 12px 14px; background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(59, 130, 246, 0.45); border-radius: 10px;">
+      <input type="hidden" name="aplicar_todos_nivel_presente" value="1">
+      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; margin: 0;">
+        <input type="checkbox" name="aplicar_todos_nivel" value="1" checked style="width: 18px; height: 18px; accent-color: #2563eb;">
+        <span>Aplicar automáticamente a todos los cursos y paralelos del mismo nivel (todos los 2dos o todos los 3ros)</span>
+      </label>
+    </div>
+    
+<button id="btn-generar" type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-4 rounded-xl text-lg shadow-lg transition">
                 ✨ Generar Módulo Completo con Inteligencia Artificial
             </button>
         </form>

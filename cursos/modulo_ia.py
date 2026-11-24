@@ -400,20 +400,89 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 )
                 tarea_obj = Tarea.objects.filter(id=tarea_id).first() if tarea_id else None
 
-                modulo = ModuloInteractivo.objects.create(
-                    titulo=titulo,
-                    asignatura=asignatura,
-                    institucion=institucion,
-                    curso=curso,
-                    especialidad=especialidad,
-                    paralelo=paralelo,
-                    destreza_indicadores=destreza,
-                    tiempo_minutos=tiempo_minutos,
-                    contenido_json=json.dumps(parsed, ensure_ascii=False),
-                    evaluacion_vinculada=evaluacion,
-                    tarea_deber_vinculada=tarea_obj,
+                def _nivel_grupo(nombre_curso):
+                    low = (nombre_curso or "").strip().lower()
+                    if re.match(r"^(2do|2°|segundo)\b", low):
+                        return "2DO"
+                    if re.match(r"^(3ro|3°|tercero)\b", low):
+                        return "3RO"
+                    return None
+
+                def _clonar_registro(obj, curso_dest):
+                    if obj is None:
+                        return None
+                    if getattr(obj, "curso_id", None) == curso_dest.id:
+                        return obj
+                    cls = obj.__class__
+                    kwargs = {}
+                    for f in cls._meta.fields:
+                        if f.primary_key:
+                            continue
+                        if f.name == "curso":
+                            kwargs["curso"] = curso_dest
+                        else:
+                            kwargs[f.name] = getattr(obj, f.attname)
+                    if cls.__name__ == "Tarea":
+                        existente = cls.objects.filter(titulo=kwargs.get("titulo"), curso=curso_dest).first()
+                        if existente:
+                            return existente
+                    return cls.objects.create(**kwargs)
+
+                aplicar_todos = (
+                    request.POST.get("aplicar_todos_nivel") == "1"
+                    if "aplicar_todos_nivel_presente" in request.POST
+                    else True
                 )
-                return redirect("ver_modulo_interactivo", modulo_id=modulo.id)
+                grupo = _nivel_grupo(curso.nombre if curso else "")
+                cursos_destino = [curso] if curso else []
+                if aplicar_todos and grupo:
+                    todos_nivel = [
+                        c for c in CursoBGU.objects.all().order_by("id")
+                        if _nivel_grupo(c.nombre) == grupo
+                    ]
+                    if todos_nivel:
+                        cursos_destino = [curso] + [c for c in todos_nivel if c.id != curso.id]
+
+                modulo_principal = None
+                json_base = json.dumps(parsed, ensure_ascii=False)
+                for c_dest in cursos_destino:
+                    if c_dest.id == curso.id:
+                        eval_dest = evaluacion
+                        tarea_dest = tarea_obj
+                        esp_dest = especialidad
+                        par_dest = paralelo
+                        json_dest = json_base
+                    else:
+                        eval_dest = _clonar_registro(evaluacion, c_dest)
+                        tarea_dest = _clonar_registro(tarea_obj, c_dest)
+                        if "_detectar_especialidad_paralelo" in globals():
+                            esp_dest, par_dest = _detectar_especialidad_paralelo(c_dest.nombre)
+                            esp_dest = esp_dest or especialidad
+                            par_dest = par_dest or paralelo
+                        else:
+                            esp_dest, par_dest = especialidad, paralelo
+                        json_dest = json_base
+                        if curso and curso.nombre and c_dest.nombre:
+                            json_dest = json_dest.replace(curso.nombre, c_dest.nombre)
+                            json_dest = json_dest.replace(curso.nombre.upper(), c_dest.nombre.upper())
+
+                    mod_creado = ModuloInteractivo.objects.create(
+                        titulo=titulo,
+                        asignatura=asignatura,
+                        institucion=institucion,
+                        curso=c_dest,
+                        especialidad=esp_dest,
+                        paralelo=par_dest,
+                        destreza_indicadores=destreza,
+                        tiempo_minutos=tiempo_minutos,
+                        contenido_json=json_dest,
+                        evaluacion_vinculada=eval_dest,
+                        tarea_deber_vinculada=tarea_dest,
+                    )
+                    if modulo_principal is None:
+                        modulo_principal = mod_creado
+
+                return redirect("ver_modulo_interactivo", modulo_id=modulo_principal.id)
             except Exception as e:
                 _b = e.read().decode('utf-8', errors='ignore')[:260] if hasattr(e, 'read') else ''
                 _u = locals().get('url', '').split('?')[0].split('/')[-1]
