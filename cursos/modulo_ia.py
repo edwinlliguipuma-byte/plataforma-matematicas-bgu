@@ -74,7 +74,7 @@ def _formatear_whatsapp_ec(telefono):
     return limpio
 
 
-def _gemini_urlopen(req, timeout=90):
+def _gemini_urlopen(req, timeout=165):
     import time, urllib.request, urllib.error
     orig_url = req.full_url if hasattr(req, "full_url") else str(req)
     if "generativelanguage.googleapis.com" not in orig_url or ":generateContent" not in orig_url:
@@ -118,7 +118,7 @@ def _gemini_url(k):
     ]
     try:
         u = f"https://generativelanguage.googleapis.com/v1beta/models?key={k}"
-        d = json.loads(urllib.request.urlopen(u, timeout=12).read().decode("utf-8"))
+        d = json.loads(urllib.request.urlopen(u, timeout=165).read().decode("utf-8"))
         ms = [
             m["name"] for m in d.get("models", [])
             if "generateContent" in m.get("supportedGenerationMethods", [])
@@ -399,7 +399,8 @@ CANTIDADES EXACTAS OBLIGATORIAS:
 - "evaluacion_20": exactamente 20 preguntas de opción múltiple (4 opciones cada una, indice_correcto de 0 a 3).
 """
             prompt += "\nREGLA DE VELOCIDAD: Sé directo y conciso en cada explicación y opción (máximo 2 líneas por explicación) para responder rápido.\n"
-            parts = [{"text": prompt}]
+            prompt += "\nREGLA DE VELOCIDAD Y CONCISION: Responde de forma directa y breve. Cada explicacion o paso de resolucion debe tener maximo 1 o 2 lineas cortas (sin rodeos), manteniendo todas las formulas matematicas entre $...$.\n"
+        parts = [{"text": prompt}]
             for foto in fotos[:3]:
                 b64_img = _optimizar_imagen_b64(foto)
                 parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
@@ -420,7 +421,7 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 method="POST",
             )
             try:
-                with _gemini_urlopen(req, timeout=90) as resp:
+                with _gemini_urlopen(req, timeout=165) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                 raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
                 parsed = json.loads(raw_text)
