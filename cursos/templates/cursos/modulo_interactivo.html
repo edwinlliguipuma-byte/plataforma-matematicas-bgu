@@ -415,12 +415,53 @@
 <!-- KATEX_MATH_RENDERER_START -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <style>
-  /* Evitar que tarjetas en grid o flex se desborden unas sobre otras */
+  /* Nitidez tipografica profesional en toda la vista del modulo */
+  body, main, section, article, .card, [class*="card"], [class*="ejercicio"], [class*="deber"], [class*="pregunta"] {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Evitar desbordamiento entre tarjetas en grid o flex */
   .grid > div, [class*="grid"] > div {
     min-width: 0 !important;
     overflow-wrap: break-word;
     word-wrap: break-word;
   }
+
+  /* Estilo compacto, nitido y profesional para ejercicios, deberes y evaluacion */
+  main [class*="ejercicio"],
+  main [class*="deber"],
+  main [class*="pregunta"],
+  main [class*="paso"],
+  main .space-y-4 > div,
+  main .space-y-6 > div,
+  #tab-ejercicios > div,
+  #tab-deber > div,
+  #tab-evaluacion > div,
+  [data-tab-content] .bg-white,
+  [data-section] .bg-white {
+    padding: 0.65rem 0.9rem !important;
+    margin-bottom: 0.55rem !important;
+    border-radius: 0.6rem !important;
+    font-size: 0.85rem !important;
+    line-height: 1.42 !important;
+  }
+
+  main h3, main h4,
+  [data-tab-content] h3, [data-tab-content] h4 {
+    font-size: 0.92rem !important;
+    line-height: 1.32 !important;
+    margin-bottom: 0.3rem !important;
+  }
+
+  main p, main li, main label,
+  [data-tab-content] p, [data-tab-content] li, [data-tab-content] label {
+    font-size: 0.84rem !important;
+    line-height: 1.42 !important;
+  }
+
+  /* KaTeX nitido, compacto y con salto de linea seguro */
   .katex,
   .katex .katex-html,
   .katex-display > .katex {
@@ -430,9 +471,9 @@
     word-break: normal !important;
   }
   .katex {
-    font-size: 1.0em;
+    font-size: 0.97em !important;
     color: inherit !important;
-    line-height: 1.45 !important;
+    line-height: 1.38 !important;
   }
   .katex .base {
     display: inline !important;
@@ -442,7 +483,7 @@
     white-space: normal !important;
   }
   .katex-display {
-    margin: 0.45em 0;
+    margin: 0.35em 0 !important;
     overflow-x: auto;
     overflow-y: hidden;
     max-width: 100% !important;
@@ -451,6 +492,12 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script>
 (function() {
+  const MATH_FUNCS = new Set([
+    "sin","cos","tan","sec","csc","cot","arcsin","arccos","arctan",
+    "sinh","cosh","tanh","ln","log","exp","lim","sup","inf","max","min",
+    "mod","det","dim","ker","gcd","lcm","dx","dy","dz","dt","du","dv"
+  ]);
+
   function escHtml(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
@@ -459,22 +506,27 @@
     let prev;
     do {
       prev = s;
-      s = s.replace(/\\(?:text|textbf|textit|textrm|mathrm)\{([^{}]*)\}/g, "$1");
+      s = s.replace(/\\(?:text|textbf|textit|textrm|mathrm)\{([^{}]*)\}/g, " $1 ");
     } while (s !== prev);
-    return s;
+    return s.replace(/\s{2,}/g, " ");
   }
 
-  function renderTexSafe(tex, displayMode) {
-    const clean = tex.trim();
-    if (!clean) return "";
-    // Si dentro de un solo $...$ hay varias definiciones separadas por coma y texto largo,
-    // dividirlas para que hagan salto de linea natural dentro de tarjetas estrechas
-    if (!displayMode && clean.length > 28 && /,\s*/.test(clean) && /\\text\{/.test(clean)) {
-      const parts = clean.split(/,\s*(?=[A-Za-z\\])/);
-      if (parts.length > 1) {
-        return parts.map(p => renderTexSafe(p, false)).join(", ");
+  function hasSpanishProse(tex) {
+    // Quitar comandos LaTeX (\dots, \frac, etc.) antes de buscar palabras en español
+    const stripped = tex.replace(/\\[a-zA-Z]+/g, " ");
+    if (/[¿¡áéíóúüñÁÉÍÓÚÜÑ]/.test(stripped)) return true;
+    const words = stripped.match(/\b[A-Za-z]{2,}\b/g) || [];
+    for (const w of words) {
+      if (!MATH_FUNCS.has(w.toLowerCase())) {
+        return true;
       }
     }
+    return false;
+  }
+
+  function renderPureTex(tex, displayMode) {
+    const clean = tex.trim();
+    if (!clean) return "";
     try {
       return katex.renderToString(clean, {
         throwOnError: false,
@@ -486,23 +538,76 @@
     }
   }
 
+  // Divide inteligentemente un bloque $...$ que contenga palabras en español mezcladas con matematica
+  function renderSmartDollar(inner, displayMode) {
+    const unwrapped = unwrapTextCmds(inner).trim();
+    if (!unwrapped) return "";
+
+    if (!hasSpanishProse(unwrapped)) {
+      return renderPureTex(unwrapped, displayMode);
+    }
+
+    // Separar fragmentos de texto español (incluyendo ¿ ¡ palabras, articulos y puntuacion) de fragmentos matematicos
+    const prosePieceRegex = /([¿¡]?\s*(?:[A-Za-záéíóúüñÁÉÍÓÚÜÑ]{2,})(?:\s+(?:[A-Za-záéíóúüñÁÉÍÓÚÜÑ]+|[¿¡]))*[.,;:?!)]*)/g;
+    let out = "";
+    let last = 0;
+    let m;
+
+    while ((m = prosePieceRegex.exec(unwrapped)) !== null) {
+      const candidate = m[0];
+      // Verificar que no sea solo una funcion matematica como "sin" o "log"
+      const alphaTokens = candidate.match(/[A-Za-záéíóúüñÁÉÍÓÚÜÑ]+/g) || [];
+      const isOnlyMathFunc = alphaTokens.length === 1 && MATH_FUNCS.has(alphaTokens[0].toLowerCase()) && !/[¿¡áéíóúüñÁÉÍÓÚÜÑ]/.test(candidate);
+      if (isOnlyMathFunc) continue;
+
+      let mathBefore = unwrapped.slice(last, m.index);
+      let proseText = candidate;
+
+      // Si antes del texto español habia una coma o parentesis pegado (ej: "\dots, ¿cuál..."), mover ", " al texto plano
+      const trailingPunct = mathBefore.match(/([,;:]+|\()\s*$/);
+      if (trailingPunct) {
+        mathBefore = mathBefore.slice(0, mathBefore.length - trailingPunct[0].length);
+        proseText = trailingPunct[0] + proseText;
+      }
+
+      if (mathBefore.trim()) {
+        const leadSpace = /^\s/.test(mathBefore) ? " " : "";
+        const trailSpace = /\s$/.test(mathBefore) ? " " : "";
+        out += leadSpace + renderPureTex(mathBefore.trim(), false) + trailSpace;
+      } else if (mathBefore) {
+        out += escHtml(mathBefore);
+      }
+
+      out += escHtml(proseText);
+      last = prosePieceRegex.lastIndex;
+    }
+
+    const tailMath = unwrapped.slice(last);
+    if (tailMath.trim()) {
+      const leadSpace = /^\s/.test(tailMath) ? " " : "";
+      const trailSpace = /\s$/.test(tailMath) ? " " : "";
+      out += leadSpace + renderPureTex(tailMath.trim(), false) + trailSpace;
+    } else if (tailMath) {
+      out += escHtml(tailMath);
+    }
+
+    return out;
+  }
+
   function isPureMathLine(str) {
     const t = str.trim();
     if (!t || t.length > 260) return false;
-    const hasLatexCmd = /\\(int|frac|dfrac|tfrac|sqrt|left|right|cdot|times|div|pm|mp|sum|prod|lim|infty|pi|theta|alpha|beta|gamma|Delta|le|ge|neq|approx|equiv|ln|log|sin|cos|tan|sec|csc|cot|vec|overline|underline|,|;|quad)/.test(t);
+    const hasLatexCmd = /\\(int|frac|dfrac|tfrac|sqrt|left|right|cdot|times|div|pm|mp|sum|prod|lim|infty|pi|theta|alpha|beta|gamma|Delta|le|ge|neq|approx|equiv|ln|log|sin|cos|tan|sec|csc|cot|vec|overline|underline|dots|cdots|ldots|,|;|quad)/.test(t);
     const hasPowerOrSub = /[A-Za-z0-9)\]}]\s*[\^_]\s*(\{[^}]+\}|[-+]?[A-Za-z0-9]+)/.test(t);
     if (!hasLatexCmd && !hasPowerOrSub) return false;
-    const noCmds = t.replace(/\\[a-zA-Z]+/g, " ");
-    const proseWords = (noCmds.match(/\b[a-záéíóúñÁÉÍÓÚÑ]{4,}\b/g) || []).filter(
-      w => !/^(sin|cos|tan|sec|csc|cot|log|mod|lim|max|min|para|todo)$/i.test(w)
-    );
-    return proseWords.length <= 2;
+    return !hasSpanishProse(t);
   }
 
   function formatMixedText(text) {
     let out = "";
     let lastIdx = 0;
-    const delimRegex = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$(?!\s*\d+(?:[.,]\d+)?(?:\s|[.,;:!?)]|$))([^$\n]+?)\$)/g;
+    // Detecta $$...$$, \[...\], \(...\), y pares $...$ sin rechazar sucesiones como $3, 9, 15...$
+    const delimRegex = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|(?<!\\)\$(?!\s*\$)([^$\n]+?)(?<!\\)\$(?!\d))/g;
     let m;
     while ((m = delimRegex.exec(text)) !== null) {
       if (m.index > lastIdx) {
@@ -510,13 +615,13 @@
       }
       const token = m[0];
       if (token.startsWith("$$")) {
-        out += renderTexSafe(token.slice(2, -2), true);
+        out += renderSmartDollar(token.slice(2, -2), true);
       } else if (token.startsWith("\\[")) {
-        out += renderTexSafe(token.slice(2, -2), true);
+        out += renderSmartDollar(token.slice(2, -2), true);
       } else if (token.startsWith("\\(")) {
-        out += renderTexSafe(token.slice(2, -2), false);
+        out += renderSmartDollar(token.slice(2, -2), false);
       } else {
-        out += renderTexSafe(token.slice(1, -1), false);
+        out += renderSmartDollar(token.slice(1, -1), false);
       }
       lastIdx = delimRegex.lastIndex;
     }
@@ -530,9 +635,9 @@
     if (!segment) return "";
     segment = unwrapTextCmds(segment);
     if (isPureMathLine(segment)) {
-      return renderTexSafe(segment, false);
+      return renderPureTex(segment, false);
     }
-    const inlineMathRegex = /((?:\\(?:int|dfrac|tfrac|frac|sqrt|left|right|cdot|times|div|pm|mp|sum|lim|infty|pi|theta|alpha|beta|le|ge|neq|approx|ln|log|sin|cos|tan)(?:\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*|[A-Za-z0-9)\]}]+\s*\^\s*(?:\{[^{}]+\}|[-+]?[A-Za-z0-9]+)|[A-Za-z]\s*_\s*(?:\{[^{}]+\}|[0-9]+))(?:\s*(?:[+\-=<>*/(),.;]|\\,|\\;|\\left\(|\\right\)|\\frac\{[^{}]*\}\{[^{}]*\}|\\sqrt\{[^{}]*\}|\\cdot|\\times|\\div|\\pm|\\le|\\ge|\\neq|[A-Za-z0-9]+\s*\^\s*(?:\{[^{}]+\}|[-+]?[A-Za-z0-9]+)|[A-Za-z0-9]+))*)/g;
+    const inlineMathRegex = /((?:\\(?:int|dfrac|tfrac|frac|sqrt|left|right|cdot|times|div|pm|mp|sum|lim|infty|pi|theta|alpha|beta|le|ge|neq|approx|ln|log|sin|cos|tan|dots|cdots|ldots)(?:\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*|[A-Za-z0-9)\]}]+\s*\^\s*(?:\{[^{}]+\}|[-+]?[A-Za-z0-9]+)|[A-Za-z]\s*_\s*(?:\{[^{}]+\}|[0-9]+))(?:\s*(?:[+\-=<>*/(),.;]|\\,|\\;|\\dots|\\cdots|\\ldots|\\left\(|\\right\)|\\frac\{[^{}]*\}\{[^{}]*\}|\\sqrt\{[^{}]*\}|\\cdot|\\times|\\div|\\pm|\\le|\\ge|\\neq|[A-Za-z0-9]+\s*\^\s*(?:\{[^{}]+\}|[-+]?[A-Za-z0-9]+)|[A-Za-z0-9]+))*)/g;
     let res = "";
     let idx = 0;
     let match;
@@ -548,7 +653,7 @@
         trail = core.slice(-1);
         core = core.slice(0, -1);
       }
-      res += renderTexSafe(core, false) + escHtml(trail);
+      res += renderPureTex(core, false) + escHtml(trail);
       idx = inlineMathRegex.lastIndex;
     }
     if (idx < segment.length) {

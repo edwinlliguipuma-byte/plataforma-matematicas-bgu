@@ -411,6 +411,7 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 "2. MATERIA RESUMIDA Y MUY SENCILLA: Explica la teoría y cada paso con palabras simples, claras y fáciles de entender para estudiantes que tienen dificultad en matemáticas. "
                 "Evita definiciones largas o tecnicismos complicados. Usa frases cortas (máximo 1 o 2 líneas por idea), explica qué significa cada letra de la fórmula de forma sencilla y resuelve los ejemplos paso a paso con números claros.\n"
             )
+            prompt += "\nREGLA ESTRICTA DE SIGNOS DE DÓLAR (NO_SPANISH_IN_DOLLARS): NUNCA metas palabras o preguntas en español dentro de $...$. Correcto: En la progresión $3, 9, 15, 21, \\dots$, ¿cuál es el término de la posición $8$? Incorrecto: $3, 9, 15, 21, \\dots, ¿cuál es el término 8$.\n"
             parts = [{"text": prompt}]
             for foto in fotos[:3]:
                 b64_img = _optimizar_imagen_b64(foto)
