@@ -415,16 +415,28 @@
 <!-- KATEX_MATH_RENDERER_START -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <style>
-  .katex {
-    font-size: 1.02em;
-    color: inherit !important;
-    white-space: normal !important;
-    max-width: 100%;
+  /* Evitar que tarjetas en grid o flex se desborden unas sobre otras */
+  .grid > div, [class*="grid"] > div {
+    min-width: 0 !important;
     overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+  .katex,
+  .katex .katex-html,
+  .katex-display > .katex {
+    white-space: normal !important;
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+  .katex {
+    font-size: 1.0em;
+    color: inherit !important;
+    line-height: 1.45 !important;
   }
   .katex .base {
+    display: inline !important;
     white-space: normal !important;
-    max-width: 100%;
   }
   .katex .mord.text {
     white-space: normal !important;
@@ -433,7 +445,7 @@
     margin: 0.45em 0;
     overflow-x: auto;
     overflow-y: hidden;
-    max-width: 100%;
+    max-width: 100% !important;
   }
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
@@ -444,7 +456,6 @@
   }
 
   function unwrapTextCmds(s) {
-    // Convierte \text{...}, \textbf{...}, \textit{...}, \textrm{...} sueltos en texto limpio
     let prev;
     do {
       prev = s;
@@ -454,14 +465,24 @@
   }
 
   function renderTexSafe(tex, displayMode) {
+    const clean = tex.trim();
+    if (!clean) return "";
+    // Si dentro de un solo $...$ hay varias definiciones separadas por coma y texto largo,
+    // dividirlas para que hagan salto de linea natural dentro de tarjetas estrechas
+    if (!displayMode && clean.length > 28 && /,\s*/.test(clean) && /\\text\{/.test(clean)) {
+      const parts = clean.split(/,\s*(?=[A-Za-z\\])/);
+      if (parts.length > 1) {
+        return parts.map(p => renderTexSafe(p, false)).join(", ");
+      }
+    }
     try {
-      return katex.renderToString(tex.trim(), {
+      return katex.renderToString(clean, {
         throwOnError: false,
         displayMode: !!displayMode,
         strict: false
       });
     } catch (e) {
-      return escHtml(tex);
+      return escHtml(clean);
     }
   }
 
