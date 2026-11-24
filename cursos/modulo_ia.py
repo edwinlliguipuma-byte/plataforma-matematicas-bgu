@@ -401,6 +401,16 @@ CANTIDADES EXACTAS OBLIGATORIAS:
             prompt += "\nFORMATO MATEMÁTICO: Envuelve TODA expresión matemática, exponente, fracción, integral o raíz entre signos de dólar ($...$), por ejemplo: $\\int (3x^2 + 4x - 5)\\,dx$ o $\\frac{x^3}{3}$. Nunca dejes comandos LaTeX sueltos sin $...$.\n"
             prompt += "\nREGLA DE VELOCIDAD Y CONCISION: Responde de forma directa y breve. Cada explicacion o paso de resolucion debe tener maximo 1 o 2 lineas cortas (sin rodeos), manteniendo todas las formulas matematicas entre $...$.\n"
             prompt += "\nREGLA DE ETIQUETAS (NO_TEXT_CMD): Nunca uses \\text{...} para frases en español; escribe el texto fuera de los signos $ y encierra solo las fórmulas matemáticas entre $...$ (ejemplo: $a_1$ primer término, $d = a_k - a_{k-1}$ diferencia).\n"
+            # REGLA_MATERIA_SENCILLA_GENERAL
+            if especialidad:
+                prompt = prompt.replace(especialidad, "Matemática General")
+            prompt += (
+                "\nREGLA PEDAGÓGICA OBLIGATORIA (SIN ESPECIALIDAD Y FÁCIL DE ENTENDER):\n"
+                "1. SIN ENFOQUE DE ESPECIALIDAD: NO adaptes el título, subtítulo, teoría ni ejercicios a Contabilidad, Informática ni a ninguna especialidad técnica. "
+                "No escribas frases como 'aplicadas a Contabilidad' o 'para Informática'. Usa ejemplos cotidianos simples y universales válidos para cualquier estudiante de bachillerato.\n"
+                "2. MATERIA RESUMIDA Y MUY SENCILLA: Explica la teoría y cada paso con palabras simples, claras y fáciles de entender para estudiantes que tienen dificultad en matemáticas. "
+                "Evita definiciones largas o tecnicismos complicados. Usa frases cortas (máximo 1 o 2 líneas por idea), explica qué significa cada letra de la fórmula de forma sencilla y resuelve los ejemplos paso a paso con números claros.\n"
+            )
             parts = [{"text": prompt}]
             for foto in fotos[:3]:
                 b64_img = _optimizar_imagen_b64(foto)
