@@ -9,21 +9,22 @@
         * { box-sizing: border-box; }
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f1f5f9;
+            background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%);
             color: #0f172a;
             margin: 0;
-            padding: 12px;
+            padding: 14px;
+            min-height: 100vh;
         }
-        .container { max-width: 1100px; margin: 0 auto; }
+        .container { max-width: 1120px; margin: 0 auto; }
 
-        /* CABECERA OSCURA */
         .top-card {
-            background: #0f172a;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: #fff;
-            border-radius: 18px;
-            padding: 18px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
-            margin-bottom: 14px;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .top-meta {
             display: flex;
@@ -31,15 +32,16 @@
             justify-content: space-between;
             align-items: center;
             gap: 8px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
+            letter-spacing: 0.3px;
             color: #cbd5e1;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         .badge-offline {
             background: rgba(16, 185, 129, 0.18);
             color: #34d399;
             border: 1px solid rgba(52, 211, 153, 0.35);
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 999px;
             font-weight: 700;
         }
@@ -53,29 +55,44 @@
             flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 12px;
             margin-bottom: 6px;
         }
         .curso-row h1 {
             margin: 0;
-            font-size: 1.35rem;
+            font-size: 1.4rem;
             font-weight: 800;
+            letter-spacing: -0.3px;
         }
         .select-curso {
-            background: #1e293b;
+            background: #0f172a;
             color: #fff;
-            border: 1px solid #475569;
-            border-radius: 10px;
+            border: 1.5px solid #38bdf8;
+            border-radius: 12px;
             padding: 10px 14px;
-            font-size: 1rem;
+            font-size: 0.98rem;
             font-weight: 700;
-            min-width: 250px;
+            min-width: 270px;
             cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
         .subtitulo {
             color: #94a3b8;
-            font-size: 0.9rem;
+            font-size: 0.92rem;
             margin: 0 0 14px 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .pill-horario {
+            background: rgba(56, 189, 248, 0.16);
+            color: #7dd3fc;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.82rem;
         }
         .sync-bar {
             display: flex;
@@ -83,9 +100,9 @@
             justify-content: space-between;
             align-items: center;
             gap: 8px;
-            font-size: 0.85rem;
+            font-size: 0.84rem;
             color: #cbd5e1;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         .estado-guardado { color: #34d399; font-weight: 700; }
 
@@ -108,18 +125,18 @@
             justify-content: center;
             gap: 6px;
             text-decoration: none;
-            transition: transform 0.08s ease, opacity 0.15s ease;
+            transition: transform 0.08s ease, filter 0.15s ease;
         }
+        .btn:hover { filter: brightness(1.06); }
         .btn:active { transform: scale(0.98); }
-        .btn-sync { background: #10b981; }
-        .btn-sabana { background: #2563eb; }
-        .btn-csv { background: #0d9488; }
-        .btn-json { background: #6366f1; }
-        .btn-import { background: #d97706; }
-        .btn-print { background: #334155; }
+        .btn-sync { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .btn-sabana { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .btn-csv { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
+        .btn-json { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
+        .btn-import { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
         .escala-box {
-            background: #1e293b;
+            background: rgba(15, 23, 42, 0.75);
             border: 1px solid #334155;
             border-radius: 12px;
             padding: 10px 14px;
@@ -134,25 +151,60 @@
         }
         .chips-escala { display: flex; flex-wrap: wrap; gap: 8px; }
         .chip-e {
-            background: #0f172a;
-            padding: 4px 10px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 4px 14px;
             border-radius: 8px;
-            color: #fff;
-            font-size: 0.85rem;
+            font-size: 0.92rem;
+            font-weight: 800;
         }
-        .chip-e span.ep { color: #34d399; margin-right: 4px; }
-        .chip-e span.bp { color: #60a5fa; margin-right: 4px; }
-        .chip-e span.dp { color: #fbbf24; margin-right: 4px; }
-        .chip-e span.np { color: #f87171; margin-right: 4px; }
 
-        /* TARJETAS BLANCAS */
         .panel-card {
             background: #fff;
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 16px;
-            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+            border: 1px solid #e2e8f0;
             margin-bottom: 14px;
         }
+        .dias-semana-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .dias-semana-bar span {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #334155;
+        }
+        .dias-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .dia-toggle {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #475569;
+            padding: 6px 13px;
+            border-radius: 9px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .dia-toggle.activo {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+        }
+
         .fecha-header {
             display: flex;
             flex-wrap: wrap;
@@ -172,12 +224,13 @@
             border-radius: 10px;
             width: 38px;
             height: 38px;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 800;
             cursor: pointer;
+            color: #0f172a;
         }
         .fecha-titulo { text-align: center; }
-        .fecha-titulo h2 { margin: 0; font-size: 1.15rem; }
+        .fecha-titulo h2 { margin: 0; font-size: 1.15rem; color: #0f172a; }
         .fecha-titulo small { color: #64748b; }
 
         .agregar-fecha-box {
@@ -191,6 +244,7 @@
             border-radius: 10px;
             font-size: 0.9rem;
             font-weight: 600;
+            color: #0f172a;
         }
         .btn-add-fecha {
             background: #0f172a;
@@ -212,17 +266,23 @@
         .fecha-pill {
             flex: 0 0 auto;
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            border: 1.5px solid #e2e8f0;
             border-radius: 12px;
             padding: 8px 12px;
             text-align: center;
             cursor: pointer;
-            min-width: 82px;
+            min-width: 86px;
+            transition: all 0.12s ease;
+        }
+        .fecha-pill.completa {
+            border-color: #86efac;
+            background: #f0fdf4;
         }
         .fecha-pill.activa {
             background: #0f172a;
             color: #fff;
             border-color: #0f172a;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
         }
         .fecha-pill .dia { font-weight: 800; font-size: 0.88rem; display: block; }
         .fecha-pill .conteo {
@@ -230,17 +290,20 @@
             margin-top: 4px;
             font-size: 0.75rem;
             font-weight: 700;
-            padding: 2px 7px;
+            padding: 2px 8px;
             border-radius: 6px;
             background: #e2e8f0;
             color: #334155;
+        }
+        .fecha-pill.completa .conteo {
+            background: #bbf7d0;
+            color: #166534;
         }
         .fecha-pill.activa .conteo {
             background: #2563eb;
             color: #fff;
         }
 
-        /* CONTADORES */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -275,20 +338,25 @@
         .buscador {
             width: 100%;
             padding: 12px 16px;
-            border: 1px solid #cbd5e1;
+            border: 1.5px solid #cbd5e1;
             border-radius: 14px;
             font-size: 1rem;
             margin-bottom: 14px;
             background: #fff;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+        }
+        .buscador:focus {
+            outline: none;
+            border-color: #2563eb;
         }
 
-        /* LISTA DE ESTUDIANTES */
         .estudiante-item {
             background: #fff;
             border-radius: 14px;
             padding: 12px 14px;
             margin-bottom: 10px;
-            box-shadow: 0 1px 6px rgba(15, 23, 42, 0.05);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            border: 1px solid #e2e8f0;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
@@ -312,7 +380,7 @@
             border-radius: 6px;
             margin-right: 6px;
         }
-        .est-nombre { font-weight: 700; font-size: 0.96rem; }
+        .est-nombre { font-weight: 700; font-size: 0.96rem; color: #0f172a; }
 
         .controles-est {
             display: flex;
@@ -334,19 +402,20 @@
             padding: 7px 11px;
             border-radius: 8px;
             font-weight: 800;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             cursor: pointer;
             color: #475569;
+            transition: background 0.1s ease, color 0.1s ease;
         }
         .btn-opt.active-P { background: #16a34a; color: #fff; }
         .btn-opt.active-F { background: #dc2626; color: #fff; }
         .btn-opt.active-A { background: #d97706; color: #fff; }
         .btn-opt.active-J { background: #2563eb; color: #fff; }
 
-        .btn-opt.active-EP { background: #059669; color: #fff; }
-        .btn-opt.active-BP { background: #2563eb; color: #fff; }
-        .btn-opt.active-DP { background: #d97706; color: #fff; }
-        .btn-opt.active-NP { background: #dc2626; color: #fff; }
+        .btn-opt.active-10 { background: #059669; color: #fff; }
+        .btn-opt.active-8 { background: #2563eb; color: #fff; }
+        .btn-opt.active-6 { background: #d97706; color: #fff; }
+        .btn-opt.active-4 { background: #dc2626; color: #fff; }
 
         .toast {
             position: fixed;
@@ -355,10 +424,10 @@
             transform: translateX(-50%);
             background: #0f172a;
             color: #fff;
-            padding: 12px 20px;
+            padding: 12px 22px;
             border-radius: 12px;
             font-weight: 700;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.28);
             z-index: 9999;
             display: none;
         }
@@ -367,7 +436,6 @@
 <body>
 
 <div class="container">
-    <!-- CABECERA PRINCIPAL -->
     <div class="top-card">
         <div class="top-meta">
             <span>U.E. "DR. ENRIQUE NOBOA ARÍZAGA" • 2026–2027</span>
@@ -379,7 +447,10 @@
             <select id="selectCurso" class="select-curso" onchange="cambiarCurso(this.value)"></select>
         </div>
 
-        <p class="subtitulo">Matemática • III Trimestre • Msc. Edwin Lliguipuma E.</p>
+        <p class="subtitulo">
+            <span>Matemática • III Trimestre • Msc. Edwin Lliguipuma E.</span>
+            <span id="pillHorarioCurso" class="pill-horario">Horario</span>
+        </p>
 
         <div class="sync-bar">
             <span>🏠 Guarda en el celular y sincroniza con la Sábana Horizontal</span>
@@ -398,24 +469,28 @@
         </div>
 
         <div class="escala-box">
-            <span>✏️ Lección / Pizarra (Cuali → Cuanti):</span>
+            <span>✏️ Calificación Lección / Pizarra:</span>
             <div class="chips-escala">
-                <span class="chip-e"><span class="ep">EP</span>10</span>
-                <span class="chip-e"><span class="bp">BP</span>8,5</span>
-                <span class="chip-e"><span class="dp">DP</span>6,5</span>
-                <span class="chip-e"><span class="np">NP</span>4</span>
+                <span class="chip-e" style="color:#34d399;">10</span>
+                <span class="chip-e" style="color:#60a5fa;">8</span>
+                <span class="chip-e" style="color:#fbbf24;">6</span>
+                <span class="chip-e" style="color:#f87171;">4</span>
             </div>
         </div>
     </div>
 
-    <!-- SELECTOR DE FECHAS POR CURSO -->
     <div class="panel-card">
+        <div class="dias-semana-bar">
+            <span>📅 Días de clase de este curso:</span>
+            <div class="dias-chips" id="diasSemanaChips"></div>
+        </div>
+
         <div class="fecha-header">
             <div class="fecha-nav">
                 <button class="btn-nav-fecha" onclick="moverFecha(-1)">‹</button>
                 <div class="fecha-titulo">
-                    <h2 id="fechaActualTexto">Jueves 26/11/2026</h2>
-                    <small id="subtituloFecha">Sesión activa • Fechas registradas de este curso</small>
+                    <h2 id="fechaActualTexto">Lunes 23/11/2026</h2>
+                    <small id="subtituloFecha">Sesión activa • Fechas de este curso</small>
                 </div>
                 <button class="btn-nav-fecha" onclick="moverFecha(1)">›</button>
             </div>
@@ -429,7 +504,6 @@
         <div id="fechasScroll" class="fechas-scroll"></div>
     </div>
 
-    <!-- CONTADORES Y ACCIONES RÁPIDAS -->
     <div class="panel-card">
         <div class="stats-grid">
             <div class="stat-box st-p"><small>PRESENTES</small><span id="cntP">0</span></div>
@@ -444,10 +518,8 @@
         </div>
     </div>
 
-    <!-- BUSCADOR -->
     <input type="text" id="buscadorEst" class="buscador" placeholder="🔍 Buscar estudiante por nombre o N.°..." oninput="renderizarEstudiantes()">
 
-    <!-- LISTADO DE ESTUDIANTES -->
     <div id="listaEstudiantes"></div>
 </div>
 
@@ -455,21 +527,56 @@
 
 <script>
 const CURSOS = {{ cursos_json|safe }};
-const STORAGE_KEY = 'bgu_asistencia_pizarra_v2';
-const EQUIVALENCIAS = { EP: 10, BP: 8.5, DP: 6.5, NP: 4 };
+const STORAGE_KEY = 'bgu_asistencia_pizarra_v4';
+const NOTAS_PIZARRA = [10, 8, 6, 4];
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DIAS_HABILES = [
+    { num: 1, label: 'Lun' },
+    { num: 2, label: 'Mar' },
+    { num: 3, label: 'Mié' },
+    { num: 4, label: 'Jue' },
+    { num: 5, label: 'Vie' }
+];
 
-function generarFechasBase() {
-    // Genera las fechas semanales iniciales del III Trimestre a partir del 26/11/2026
-    const base = new Date(2026, 10, 26); // 26 Nov 2026
-    const lista = [];
-    for (let i = 0; i < 14; i++) {
-        const d = new Date(base);
-        d.setDate(base.getDate() + i * 7);
-        lista.push(formatearISO(d));
-    }
-    return lista;
+// Horario oficial configurado por curso:
+// 2do Cont A: Lunes (1) y Martes (2)
+// 2do Cont B: Jueves (4) y Viernes (5)
+// 2do Inf A:  Martes (2) y Miércoles (3)
+// 2do Inf B:  Lunes (1) y Miércoles (3)
+// 3ro Cont A: Martes (2)
+// 3ro Cont B: Lunes (1)
+// 3ro Inf A:  Jueves (4)
+// 3ro Inf B:  Viernes (5)
+// 3ro Inf C:  Jueves (4)
+function diasPredefinidosPorNombre(nombreCurso) {
+    const norm = (nombreCurso || '')
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const es2do = /\b(2DO|2°|SEGUNDO)\b/.test(norm);
+    const es3ro = /\b(3RO|3ERO|3°|TERCERO)\b/.test(norm);
+    const esCont = /CONT/.test(norm);
+    const esInf = /INF/.test(norm);
+
+    let paralelo = '';
+    if (/['"\s]A(?:['"\s]|$)/.test(norm)) paralelo = 'A';
+    else if (/['"\s]B(?:['"\s]|$)/.test(norm)) paralelo = 'B';
+    else if (/['"\s]C(?:['"\s]|$)/.test(norm)) paralelo = 'C';
+
+    if (es2do && esCont && paralelo === 'A') return [1, 2]; // Lunes y Martes
+    if (es2do && esCont && paralelo === 'B') return [4, 5]; // Jueves y Viernes
+    if (es2do && esInf && paralelo === 'A')  return [2, 3]; // Martes y Miércoles
+    if (es2do && esInf && paralelo === 'B')  return [1, 3]; // Lunes y Miércoles
+
+    if (es3ro && esCont && paralelo === 'A') return [2];    // Martes
+    if (es3ro && esCont && paralelo === 'B') return [1];    // Lunes
+    if (es3ro && esInf && paralelo === 'A')  return [4];    // Jueves
+    if (es3ro && esInf && paralelo === 'B')  return [5];    // Viernes
+    if (es3ro && esInf && paralelo === 'C')  return [4];    // Jueves
+
+    return [1, 2];
 }
 
 function formatearISO(d) {
@@ -484,34 +591,73 @@ function parsearISO(iso) {
     return new Date(y, m - 1, d);
 }
 
+function generarFechasPorDias(diasElegidos) {
+    // 14 semanas del III Trimestre a partir del Lunes 23/11/2026
+    const inicio = new Date(2026, 10, 23);
+    const totalDias = 14 * 7;
+    const lista = [];
+    for (let i = 0; i < totalDias; i++) {
+        const d = new Date(inicio);
+        d.setDate(inicio.getDate() + i);
+        if (diasElegidos.includes(d.getDay())) {
+            lista.push(formatearISO(d));
+        }
+    }
+    return lista;
+}
+
 let estado = {
     cursoId: CURSOS.length ? CURSOS[0].id : null,
+    diasPorCurso: {},
     fechaActivaPorCurso: {},
-    fechasPorCurso: {},
-    asistencia: {}, // clave: `${cursoId}_${fecha}_${estId}` -> 'P'|'F'|'A'|'J'
-    pizarra: {}     // clave: `${cursoId}_${fecha}_${estId}` -> 'EP'|'BP'|'DP'|'NP'
+    fechasExtraPorCurso: {},
+    asistencia: {},
+    pizarra: {}
 };
 
 function cargarEstado() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            estado = Object.assign(estado, parsed);
+        const rawV4 = localStorage.getItem(STORAGE_KEY);
+        if (rawV4) {
+            estado = Object.assign(estado, JSON.parse(rawV4));
+        } else {
+            // Si había marcas previas en v3 o v2, migrarlas automáticamente
+            const rawPrev = localStorage.getItem('bgu_asistencia_pizarra_v3') || localStorage.getItem('bgu_asistencia_pizarra_v2');
+            if (rawPrev) {
+                const prev = JSON.parse(rawPrev);
+                if (prev.asistencia) estado.asistencia = prev.asistencia;
+                if (prev.pizarra) estado.pizarra = prev.pizarra;
+                if (prev.fechasExtraPorCurso) estado.fechasExtraPorCurso = prev.fechasExtraPorCurso;
+            }
         }
     } catch (e) {}
 
     if (!CURSOS.some(c => c.id === estado.cursoId) && CURSOS.length) {
         estado.cursoId = CURSOS[0].id;
     }
+
     CURSOS.forEach(c => {
-        if (!estado.fechasPorCurso[c.id] || !estado.fechasPorCurso[c.id].length) {
-            estado.fechasPorCurso[c.id] = generarFechasBase();
+        if (!estado.diasPorCurso[c.id] || !estado.diasPorCurso[c.id].length) {
+            estado.diasPorCurso[c.id] = diasPredefinidosPorNombre(c.nombre);
         }
-        if (!estado.fechaActivaPorCurso[c.id]) {
-            estado.fechaActivaPorCurso[c.id] = estado.fechasPorCurso[c.id][0];
+        if (!estado.fechasExtraPorCurso[c.id]) {
+            estado.fechasExtraPorCurso[c.id] = [];
+        }
+        const fechas = getFechasCurso(c.id);
+        if (!estado.fechaActivaPorCurso[c.id] || !fechas.includes(estado.fechaActivaPorCurso[c.id])) {
+            estado.fechaActivaPorCurso[c.id] = fechas[0];
         }
     });
+    guardarEstadoLocal();
+}
+
+function getFechasCurso(cursoId) {
+    const c = CURSOS.find(x => x.id === Number(cursoId));
+    const dias = estado.diasPorCurso[cursoId] || diasPredefinidosPorNombre(c ? c.nombre : '');
+    const base = generarFechasPorDias(dias);
+    const extras = estado.fechasExtraPorCurso[cursoId] || [];
+    const set = new Set([...base, ...extras]);
+    return Array.from(set).sort();
 }
 
 function guardarEstadoLocal() {
@@ -552,6 +698,41 @@ function cambiarCurso(nuevoId) {
     renderizarTodo();
 }
 
+function toggleDiaSemana(diaNum) {
+    const c = getCursoActual();
+    let dias = estado.diasPorCurso[c.id] || [];
+    if (dias.includes(diaNum)) {
+        if (dias.length === 1) {
+            mostrarToast('Debe quedar al menos un día de clase seleccionado');
+            return;
+        }
+        dias = dias.filter(d => d !== diaNum);
+    } else {
+        dias = [...dias, diaNum].sort();
+    }
+    estado.diasPorCurso[c.id] = dias;
+    const nuevasFechas = getFechasCurso(c.id);
+    if (!nuevasFechas.includes(estado.fechaActivaPorCurso[c.id])) {
+        estado.fechaActivaPorCurso[c.id] = nuevasFechas[0];
+    }
+    guardarEstadoLocal();
+    renderizarTodo();
+}
+
+function renderizarDiasSemana() {
+    const c = getCursoActual();
+    const activos = estado.diasPorCurso[c.id] || [];
+    const cont = document.getElementById('diasSemanaChips');
+    cont.innerHTML = DIAS_HABILES.map(d => `
+        <button type="button" class="dia-toggle ${activos.includes(d.num) ? 'activo' : ''}" onclick="toggleDiaSemana(${d.num})">
+            ${d.label}
+        </button>
+    `).join('');
+
+    const nombresDias = activos.map(num => DIAS_LARGOS[num]).join(' y ');
+    document.getElementById('pillHorarioCurso').textContent = `📅 ${nombresDias}`;
+}
+
 function agregarFechaPersonalizada() {
     const val = document.getElementById('nuevaFechaInput').value;
     if (!val) {
@@ -559,10 +740,8 @@ function agregarFechaPersonalizada() {
         return;
     }
     const c = getCursoActual();
-    const lista = estado.fechasPorCurso[c.id];
-    if (!lista.includes(val)) {
-        lista.push(val);
-        lista.sort();
+    if (!estado.fechasExtraPorCurso[c.id].includes(val)) {
+        estado.fechasExtraPorCurso[c.id].push(val);
     }
     estado.fechaActivaPorCurso[c.id] = val;
     guardarEstadoLocal();
@@ -579,7 +758,7 @@ function seleccionarFecha(iso) {
 
 function moverFecha(delta) {
     const c = getCursoActual();
-    const lista = estado.fechasPorCurso[c.id];
+    const lista = getFechasCurso(c.id);
     const idx = lista.indexOf(getFechaActual());
     const nuevoIdx = idx + delta;
     if (nuevoIdx >= 0 && nuevoIdx < lista.length) {
@@ -590,7 +769,7 @@ function moverFecha(delta) {
 function renderizarFechas() {
     const c = getCursoActual();
     const fechaActiva = getFechaActual();
-    const lista = estado.fechasPorCurso[c.id];
+    const lista = getFechasCurso(c.id);
 
     const dObj = parsearISO(fechaActiva);
     const diaLargo = DIAS_LARGOS[dObj.getDay()];
@@ -610,8 +789,9 @@ function renderizarFechas() {
         c.estudiantes.forEach(e => {
             if (estado.asistencia[`${c.id}_${iso}_${e.id}`]) marcados++;
         });
+        const esCompleta = marcados > 0 && marcados === c.estudiantes.length;
         return `
-            <div class="fecha-pill ${iso === fechaActiva ? 'activa' : ''}" onclick="seleccionarFecha('${iso}')">
+            <div class="fecha-pill ${esCompleta ? 'completa' : ''} ${iso === fechaActiva ? 'activa' : ''}" onclick="seleccionarFecha('${iso}')">
                 <span class="dia">${diaC} ${fCorta}</span>
                 <span class="conteo">${marcados}/${c.estudiantes.length}</span>
             </div>
@@ -655,14 +835,14 @@ function setAsistencia(estId, val) {
     renderizarEstudiantes();
 }
 
-function setPizarra(estId, cuali) {
+function setPizarra(estId, notaNum) {
     const c = getCursoActual();
     const fecha = getFechaActual();
     const key = `${c.id}_${fecha}_${estId}`;
-    if (estado.pizarra[key] === cuali) {
+    if (Number(estado.pizarra[key]) === Number(notaNum)) {
         delete estado.pizarra[key];
     } else {
-        estado.pizarra[key] = cuali;
+        estado.pizarra[key] = Number(notaNum);
     }
     guardarEstadoLocal();
     renderizarEstudiantes();
@@ -721,9 +901,9 @@ function renderizarEstudiantes() {
                             <button class="btn-opt ${asist === op ? 'active-' + op : ''}" onclick="setAsistencia(${e.id}, '${op}')">${op}</button>
                         `).join('')}
                     </div>
-                    <div class="grupo-botones" title="Nota de Pizarra">
-                        ${['EP', 'BP', 'DP', 'NP'].map(op => `
-                            <button class="btn-opt ${piz === op ? 'active-' + op : ''}" onclick="setPizarra(${e.id}, '${op}')">${op}</button>
+                    <div class="grupo-botones" title="Nota de Pizarra (10, 8, 6, 4)">
+                        ${NOTAS_PIZARRA.map(nota => `
+                            <button class="btn-opt ${Number(piz) === nota ? 'active-' + nota : ''}" onclick="setPizarra(${e.id}, ${nota})">${nota}</button>
                         `).join('')}
                     </div>
                 </div>
@@ -739,6 +919,7 @@ function renderizarTodo() {
     if (!c) return;
     document.getElementById('tituloCurso').textContent = `Asistencia y Pizarra — ${c.nombre}`;
     document.getElementById('btnVerSabana').href = `/docente/sabana-asistencia/?curso=${c.id}`;
+    renderizarDiasSemana();
     renderizarFechas();
     actualizarContadores();
     renderizarEstudiantes();
@@ -762,13 +943,12 @@ async function sincronizarConServidor() {
         });
     });
 
-    Object.entries(estado.pizarra).forEach(([key, cuali]) => {
+    Object.entries(estado.pizarra).forEach(([key, notaVal]) => {
         const [, fecha, estId] = key.split('_');
         pizarras.push({
             estudiante_id: Number(estId),
             fecha: fecha,
-            codigo_cuali: cuali,
-            nota_cuanti: EQUIVALENCIAS[cuali]
+            nota_cuanti: Number(notaVal)
         });
     });
 
@@ -797,7 +977,7 @@ async function sincronizarConServidor() {
 
 function exportarCSVLocal() {
     const c = getCursoActual();
-    const fechas = estado.fechasPorCurso[c.id].filter(f =>
+    const fechas = getFechasCurso(c.id).filter(f =>
         c.estudiantes.some(e => estado.asistencia[`${c.id}_${f}_${e.id}`] || estado.pizarra[`${c.id}_${f}_${e.id}`])
     );
     const cols = fechas.length ? fechas : [getFechaActual()];
