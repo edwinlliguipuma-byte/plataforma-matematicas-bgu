@@ -5,6 +5,7 @@ import csv
 import json
 import base64
 import urllib.request
+import urllib.error
 from collections import defaultdict
 from urllib.parse import quote
 from PIL import Image
@@ -111,8 +112,8 @@ def _formatear_whatsapp_ec(telefono):
     return limpio
 
 
-def _gemini_urlopen(req, timeout=165):
-    import time, urllib.request, urllib.error
+def _gemini_urlopen(req, timeout=90):
+    import time
     orig_url = req.full_url if hasattr(req, "full_url") else str(req)
     if "generativelanguage.googleapis.com" not in orig_url or ":generateContent" not in orig_url:
         return urllib.request.urlopen(req, timeout=timeout)
@@ -123,45 +124,65 @@ def _gemini_urlopen(req, timeout=165):
             k = seg[4:]
     cands = [orig_url]
     if k:
-        for alt in ("models/gemini-3.8-flash", "models/gemini-3.5-flash", "models/gemini-flash-latest", "models/gemini-3.0-flash"):
+        for alt in ("models/gemini-flash-latest", "models/gemini-2.5-flash", "models/gemini-3.8-flash", "models/gemini-3.5-flash"):
             u_alt = f"https://generativelanguage.googleapis.com/v1beta/{alt}:generateContent?key={k}"
             if u_alt not in cands:
                 cands.append(u_alt)
     last_err = None
-    for u_try in cands[:3]:
-        r_try = urllib.request.Request(u_try, data=req.data, headers=dict(req.header_items()), method=req.get_method())
-        try:
-            return urllib.request.urlopen(r_try, timeout=165)
-        except urllib.error.HTTPError as he:
-            last_err = he
-            if he.code in (404, 429, 500, 502, 503, 504):
-                time.sleep(1.0)
-                continue
-            raise
+    for u_try in cands[:4]:
+        raw_data = req.data
+        # Primer intento con thinkingBudget=0 para respuesta ultrarrápida (<10s)
+        for quitar_thinking in (False, True):
+            data_send = raw_data
+            if quitar_thinking and raw_data:
+                try:
+                    obj = json.loads(raw_data.decode("utf-8"))
+                    if "generationConfig" in obj and "thinkingConfig" in obj["generationConfig"]:
+                        del obj["generationConfig"]["thinkingConfig"]
+                        data_send = json.dumps(obj).encode("utf-8")
+                except Exception:
+                    pass
+            r_try = urllib.request.Request(u_try, data=data_send, headers=dict(req.header_items()), method=req.get_method())
+            try:
+                return urllib.request.urlopen(r_try, timeout=90)
+            except urllib.error.HTTPError as he:
+                last_err = he
+                err_txt = ""
+                try:
+                    err_txt = he.read().decode("utf-8", errors="ignore")
+                except Exception:
+                    pass
+                if he.code == 400 and "thinking" in err_txt.lower() and not quitar_thinking:
+                    continue
+                if he.code in (404, 429, 500, 502, 503, 504):
+                    time.sleep(0.8)
+                    break
+                raise Exception(f"HTTP {he.code}: {err_txt[:240]}")
+            except Exception as te:
+                last_err = te
+                break
     if last_err:
         raise last_err
-    return urllib.request.urlopen(req, timeout=165)
+    return urllib.request.urlopen(req, timeout=90)
 
 
 def _gemini_url(k):
-    import json, urllib.request
     k = (k or "").strip().strip('"').strip("'")
     pref = [
+        "models/gemini-flash-latest",
         "models/gemini-3.8-flash",
         "models/gemini-3.5-flash",
         "models/gemini-3.0-flash",
-        "models/gemini-flash-latest",
-        "models/gemini-3.8-pro",
-        "models/gemini-pro-latest",
+        "models/gemini-2.5-flash",
     ]
     try:
         u = f"https://generativelanguage.googleapis.com/v1beta/models?key={k}"
-        d = json.loads(urllib.request.urlopen(u, timeout=165).read().decode("utf-8"))
+        d = json.loads(urllib.request.urlopen(u, timeout=20).read().decode("utf-8"))
         ms = [
             m["name"] for m in d.get("models", [])
             if "generateContent" in m.get("supportedGenerationMethods", [])
             and "gemini" in m.get("name", "").lower()
-            and not any(x in m.get("name", "").lower() for x in ("tts", "image", "audio", "embedding", "exp", "preview", "1.5", "2.0", "2.5", "vision", "aqa", "veo"))
+            and not any(x in m.get("name", "").lower() for x in ("tts", "image", "audio", "embedding", "exp", "preview", "1.5", "2.0", "vision", "aqa", "veo", "lite"))
         ]
         for m in pref:
             if m in ms:
@@ -173,7 +194,7 @@ def _gemini_url(k):
             return f"https://generativelanguage.googleapis.com/v1beta/{sorted(ms, reverse=True)[0]}:generateContent?key={k}"
     except Exception:
         pass
-    return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={k}"
+    return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={k}"
 
 
 @staff_member_required
@@ -418,17 +439,18 @@ def crear_modulo_ia(request):
         else:
             curso = get_object_or_404(CursoBGU, id=curso_id)
             prompt = f"""
-Eres un docente especialista de Bachillerato Técnico en Ecuador (Unidad Educativa Técnica "Dr. Enrique Noboa" - La Troncal).
-Genera un módulo didáctico completo, riguroso, claro y pedagógico sobre:
+Eres un docente especialista de Bachillerato en Ecuador (Unidad Educativa Técnica "Dr. Enrique Noboa" - La Troncal).
+Genera un módulo didáctico completo, claro y muy sencillo sobre:
 - Tema: {titulo}
 - Asignatura: {asignatura}
-- Curso: {curso.nombre} ({especialidad})
+- Curso: {curso.nombre}
 - Destreza e Indicadores de Evaluación: {destreza if destreza else "Alineado al currículo vigente del Ministerio de Educación de Ecuador."}
-{"- Además analiza las imágenes adjuntas del texto/guía escolar y extrae fielmente sus conceptos, definiciones y ejercicios." if fotos else ""}
+{"- Analiza también las imágenes adjuntas del texto escolar y extrae fielmente sus conceptos y ejercicios." if fotos else ""}
 
-REGLAS DE FORMATO:
-1. Usa notación LaTeX entre signos de dólar simples ($...$) para fórmulas matemáticas o científicas (ej. $a_n = 3n + 1$, $\\frac{{2k+1}}{{k}}$, $\\sqrt{{12-2k}}$).
-2. Devuelve ÚNICAMENTE un objeto JSON válido con exactamente esta estructura:
+REGLAS DE FORMATO Y VELOCIDAD:
+1. Usa notación LaTeX entre signos de dólar simples ($...$) solo para fórmulas matemáticas (ej. $a_n = 3n + 1$, $\\frac{{2k+1}}{{k}}$). NUNCA pongas palabras en español ni \\text{{...}} dentro de $...$.
+2. Sé conciso y directo: explicaciones y pasos cortos (máximo 1 o 2 líneas), sin textos largos ni enfoques de especialidad técnica.
+3. Devuelve ÚNICAMENTE un objeto JSON válido con exactamente esta estructura:
 {{
   "subtitulo": "Frase corta descriptiva del módulo",
   "notacion_general": "Fórmula o principio central en LaTeX o texto corto",
@@ -457,7 +479,7 @@ REGLAS DE FORMATO:
       "pregunta": "Enunciado de entrenamiento",
       "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"],
       "indice_correcto": 0,
-      "explicacion": "Explicación paso a paso de por qué esa es la respuesta"
+      "explicacion": "Explicación breve de por qué esa es la respuesta"
     }}
   ],
   "deber_casa": [
@@ -478,25 +500,12 @@ REGLAS DE FORMATO:
 }}
 
 CANTIDADES EXACTAS OBLIGATORIAS:
-- "anatomia_pasos": exactamente 4 elementos.
-- "tarjetas_infografia": exactamente 5 tarjetas (colores en orden: "blue", "emerald", "purple", "amber", "rose").
-- "tarea_guiada": exactamente 6 ejercicios de entrenamiento con explicación.
-- "deber_casa": exactamente 10 ejercicios variados ordenados de menor a mayor dificultad.
-- "evaluacion_20": exactamente 20 preguntas de opción múltiple (4 opciones cada una, indice_correcto de 0 a 3).
+- "anatomia_pasos": 4 elementos.
+- "tarjetas_infografia": 5 tarjetas (colores en orden: "blue", "emerald", "purple", "amber", "rose").
+- "tarea_guiada": 6 ejercicios con explicación.
+- "deber_casa": 10 ejercicios propuestos.
+- "evaluacion_20": 20 preguntas de opción múltiple (4 opciones cada una, indice_correcto de 0 a 3).
 """
-            prompt += "\nFORMATO MATEMÁTICO: Envuelve TODA expresión matemática, exponente, fracción, integral o raíz entre signos de dólar ($...$), por ejemplo: $\\int (3x^2 + 4x - 5)\\,dx$ o $\\frac{x^3}{3}$. Nunca dejes comandos LaTeX sueltos sin $...$.\n"
-            prompt += "\nREGLA DE VELOCIDAD Y CONCISION: Responde de forma directa y breve. Cada explicacion o paso de resolucion debe tener maximo 1 o 2 lineas cortas (sin rodeos), manteniendo todas las formulas matematicas entre $...$.\n"
-            prompt += "\nREGLA DE ETIQUETAS (NO_TEXT_CMD): Nunca uses \\text{...} para frases en español; escribe el texto fuera de los signos $ y encierra solo las fórmulas matemáticas entre $...$ (ejemplo: $a_1$ primer término, $d = a_k - a_{k-1}$ diferencia).\n"
-            if especialidad:
-                prompt = prompt.replace(especialidad, "Matemática General")
-            prompt += (
-                "\nREGLA PEDAGÓGICA OBLIGATORIA (SIN ESPECIALIDAD Y FÁCIL DE ENTENDER):\n"
-                "1. SIN ENFOQUE DE ESPECIALIDAD: NO adaptes el título, subtítulo, teoría ni ejercicios a Contabilidad, Informática ni a ninguna especialidad técnica. "
-                "No escribas frases como 'aplicadas a Contabilidad' o 'para Informática'. Usa ejemplos cotidianos simples y universales válidos para cualquier estudiante de bachillerato.\n"
-                "2. MATERIA RESUMIDA Y MUY SENCILLA: Explica la teoría y cada paso con palabras simples, claras y fáciles de entender para estudiantes que tienen dificultad en matemáticas. "
-                "Evita definiciones largas o tecnicismos complicados. Usa frases cortas (máximo 1 o 2 líneas por idea), explica qué significa cada letra de la fórmula de forma sencilla y resuelve los ejemplos paso a paso con números claros.\n"
-            )
-            prompt += "\nREGLA ESTRICTA DE SIGNOS DE DÓLAR (NO_SPANISH_IN_DOLLARS): NUNCA metas palabras o preguntas en español dentro de $...$. Correcto: En la progresión $3, 9, 15, 21, \\dots$, ¿cuál es el término de la posición $8$? Incorrecto: $3, 9, 15, 21, \\dots, ¿cuál es el término 8$.\n"
             parts = [{"text": prompt}]
             for foto in fotos[:3]:
                 b64_img = _optimizar_imagen_b64(foto)
@@ -506,7 +515,8 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 "contents": [{"parts": parts}],
                 "generationConfig": {
                     "responseMimeType": "application/json",
-                    "temperature": 0.35,
+                    "temperature": 0.3,
+                    "thinkingConfig": {"thinkingBudget": 0},
                 },
             }
 
@@ -518,7 +528,7 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                 method="POST",
             )
             try:
-                with _gemini_urlopen(req, timeout=165) as resp:
+                with _gemini_urlopen(req, timeout=90) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                 raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
                 parsed = json.loads(raw_text)
@@ -584,12 +594,9 @@ CANTIDADES EXACTAS OBLIGATORIAS:
                     else:
                         eval_dest = _clonar_registro(evaluacion, c_dest)
                         tarea_dest = _clonar_registro(tarea_obj, c_dest)
-                        if "_detectar_especialidad_paralelo" in globals():
-                            esp_dest, par_dest = _detectar_especialidad_paralelo(c_dest.nombre)
-                            esp_dest = esp_dest or especialidad
-                            par_dest = par_dest or paralelo
-                        else:
-                            esp_dest, par_dest = especialidad, paralelo
+                        esp_dest, par_dest = _detectar_especialidad_paralelo(c_dest.nombre)
+                        esp_dest = esp_dest or especialidad
+                        par_dest = par_dest or paralelo
                         json_dest = json_base
                         if curso and curso.nombre and c_dest.nombre:
                             json_dest = json_dest.replace(curso.nombre, c_dest.nombre)
