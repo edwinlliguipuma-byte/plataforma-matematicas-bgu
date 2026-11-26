@@ -232,7 +232,6 @@ class EsquelaIncumplimientoAdmin(admin.ModelAdmin):
         return obj.estudiante.nombre_completo
 
     mostrar_estudiante.short_description = "Estudiante"
-    from .models import RegistroAsistencia, RegistroPizarra
-
+from .models import RegistroAsistencia, RegistroPizarra
 admin.site.register(RegistroAsistencia)
 admin.site.register(RegistroPizarra)
