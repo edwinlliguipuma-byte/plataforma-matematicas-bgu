@@ -199,13 +199,27 @@ def panel_docente_institucional(request):
     ):
         prom_entregas[row["estudiante_id"]][row["tarea__tipo_tarea"]] = float(row["p"] or 0)
 
-    prom_evals_map = {}
+    # Evaluación Online = Módulos creados con IA ([Módulo IA] ...)
+    prom_evals_online_map = {}
     for row in (
-        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
+        ResultadoEvaluacion.objects.filter(
+            estudiante_id__in=est_ids,
+            evaluacion__titulo__startswith="[Módulo IA]",
+        )
         .values("estudiante_id")
         .annotate(p=Avg("nota_obtenida"))
     ):
-        prom_evals_map[row["estudiante_id"]] = float(row["p"] or 0)
+        prom_evals_online_map[row["estudiante_id"]] = float(row["p"] or 0)
+
+    # EIS = La nota única creada directamente en "Módulos de Clase y Lecciones" (sin promediar)
+    eis_nota_unica_map = {}
+    for row in (
+        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
+        .exclude(evaluacion__titulo__startswith="[Módulo IA]")
+        .order_by("fecha_registro", "id")
+        .values("estudiante_id", "nota_obtenida")
+    ):
+        eis_nota_unica_map[row["estudiante_id"]] = float(row["nota_obtenida"] or 0)
 
     # Actuación en Clase = Promedio de asistencia sobre 10 ((P + A + J) / total_marcadas * 10)
     asist_stats = defaultdict(lambda: [0, 0])  # [asistidas, marcadas]
@@ -252,13 +266,14 @@ def panel_docente_institucional(request):
         p_mat = prom_entregas[est.id].get("MATERIA", 0.0)
         p_deb = prom_entregas[est.id].get("DEBER", 0.0)
         p_tal = prom_entregas[est.id].get("TALLER", 0.0)
-        p_eva = prom_evals_map.get(est.id, 0.0)
+        nota_eis = eis_nota_unica_map.get(est.id, 0.0)
+        p_eva = prom_evals_online_map.get(est.id, 0.0)
 
         asistidas, marcadas = asist_stats[est.id]
         p_actuacion = round((asistidas / marcadas) * 10.0, 2) if marcadas > 0 else 0.0
         p_pizarra = prom_pizarra_map.get(est.id, 0.0)
 
-        notas_activas = [n for n in (p_mat, p_deb, p_tal, p_actuacion, p_pizarra, p_eva) if n > 0]
+        notas_activas = [n for n in (p_mat, p_deb, p_tal, p_actuacion, p_pizarra, nota_eis, p_eva) if n > 0]
         promedio_final = round(sum(notas_activas) / len(notas_activas), 2) if notas_activas else 0.0
 
         tot_t = tareas_por_curso.get(est.curso_id, 0)
@@ -277,6 +292,7 @@ def panel_docente_institucional(request):
                 "talleres": round(p_tal, 2),
                 "actuacion_clase": p_actuacion,
                 "leccion_pizarra": round(p_pizarra, 2),
+                "eis": round(nota_eis, 2),
                 "evaluaciones": round(p_eva, 2),
                 "promedio": promedio_final,
                 "pendientes": pendientes,
@@ -298,6 +314,7 @@ def panel_docente_institucional(request):
                 "Talleres",
                 "Actuación en Clase (/10)",
                 "Lección / Pizarra",
+                "EIS",
                 "Evaluación Online",
                 "Promedio General",
                 "Actividades Pendientes",
@@ -314,6 +331,7 @@ def panel_docente_institucional(request):
                     f["talleres"],
                     f["actuacion_clase"],
                     f["leccion_pizarra"],
+                    f["eis"],
                     f["evaluaciones"],
                     f["promedio"],
                     f["pendientes"],
