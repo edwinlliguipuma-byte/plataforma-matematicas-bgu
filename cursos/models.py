@@ -206,7 +206,7 @@ class ModuloInteractivo(models.Model):
 
     titulo = models.CharField(max_length=200, verbose_name="Tema del Módulo")
     asignatura = models.CharField(
-        max_length=120, default="Matemática Aplicada", verbose_name="Asignatura"
+        max_length=120, default="Matemática", verbose_name="Asignatura"
     )
     institucion = models.CharField(
         max_length=200,
@@ -281,3 +281,50 @@ class EsquelaIncumplimiento(models.Model):
 
     def __str__(self):
         return f"Esquela - {self.estudiante.nombre_completo} ({self.fecha_emision.strftime('%d/%m/%Y')})"
+
+
+class RegistroAsistencia(models.Model):
+    ESTADOS = [
+        ("P", "Presente"),
+        ("F", "Falta"),
+        ("A", "Atraso"),
+        ("J", "Justificado"),
+    ]
+    estudiante = models.ForeignKey(
+        EstudiantePerfil, on_delete=models.CASCADE, related_name="asistencias"
+    )
+    fecha = models.DateField(verbose_name="Fecha de Sesión")
+    estado = models.CharField(max_length=2, choices=ESTADOS, default="P")
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("estudiante", "fecha")
+        verbose_name = "Registro de Asistencia"
+        verbose_name_plural = "Registros de Asistencia"
+
+    def __str__(self):
+        return f"{self.estudiante.nombre_completo} - {self.fecha}: {self.estado}"
+
+
+class RegistroPizarra(models.Model):
+    CALIFICACIONES_CUALI = [
+        ("EP", "Excelente Participación"),
+        ("BP", "Buena Participación"),
+        ("DP", "Débil Participación"),
+        ("NP", "No Pasó / No Participó"),
+    ]
+    estudiante = models.ForeignKey(
+        EstudiantePerfil, on_delete=models.CASCADE, related_name="pizarras"
+    )
+    fecha = models.DateField(verbose_name="Fecha de Sesión")
+    codigo_cuali = models.CharField(max_length=2, choices=CALIFICACIONES_CUALI)
+    nota_cuanti = models.DecimalField(max_digits=4, decimal_places=2)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("estudiante", "fecha")
+        verbose_name = "Lección / Pizarra"
+        verbose_name_plural = "Lecciones / Pizarra"
+
+    def __str__(self):
+        return f"{self.estudiante.nombre_completo} - {self.fecha}: {self.codigo_cuali} ({self.nota_cuanti})"

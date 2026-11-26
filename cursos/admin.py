@@ -14,6 +14,40 @@ from .models import (
 )
 
 
+def _normalizar_curso_bgu_post(request):
+    if getattr(request, 'method', '') != 'POST':
+        return
+    raw = (request.POST.get('curso') or '').strip()
+    if raw not in ('2DO BGU', '3ERO DE BGU', '2DO DE BGU'):
+        return
+    import re as _re
+    pref = '2DO' if raw.startswith('2') else '3RO'
+    esp = (request.POST.get('especialidad') or '').strip().lower()
+    par = _re.sub(r'^paralelo\s+', '', (request.POST.get('paralelo') or '').strip().lower()).strip()
+    cands = [
+        c for c in CursoBGU.objects.all().order_by('id')
+        if (_re.match(r'^(2do|2°|segundo)\b', (c.nombre or '').strip().lower()) if pref == '2DO'
+            else _re.match(r'^(3ro|3ero|3°|tercero)\b', (c.nombre or '').strip().lower()))
+    ]
+    chosen = None
+    for c in cands:
+        cn = c.nombre.lower()
+        par_ok = bool(par and _re.search(r'(?:^|[\s\'"])' + _re.escape(par) + r'(?:$|[\s\'"])', cn))
+        if (esp and esp in cn) and par_ok:
+            chosen = c
+            break
+    if not chosen and esp:
+        for c in cands:
+            if esp in c.nombre.lower():
+                chosen = c
+                break
+    if not chosen and cands:
+        chosen = cands[0]
+    if chosen:
+        mut = request.POST.copy()
+        mut['curso'] = chosen.nombre
+        request.POST = mut
+
 def _render_caja_enlace(ruta_relativa):
     return format_html(
         '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">'

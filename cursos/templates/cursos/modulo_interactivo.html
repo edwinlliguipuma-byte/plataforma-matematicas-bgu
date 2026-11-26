@@ -429,7 +429,7 @@
     word-wrap: break-word;
   }
 
-  /* Estilo compacto, nitido y profesional para ejercicios, deberes y evaluacion */
+  /* Tamano de letra ligeramente aumentado, nitido y comodo de leer */
   main [class*="ejercicio"],
   main [class*="deber"],
   main [class*="pregunta"],
@@ -441,27 +441,27 @@
   #tab-evaluacion > div,
   [data-tab-content] .bg-white,
   [data-section] .bg-white {
-    padding: 0.65rem 0.9rem !important;
-    margin-bottom: 0.55rem !important;
-    border-radius: 0.6rem !important;
-    font-size: 0.85rem !important;
-    line-height: 1.42 !important;
+    padding: 0.85rem 1.1rem !important;
+    margin-bottom: 0.7rem !important;
+    border-radius: 0.65rem !important;
+    font-size: 0.98rem !important;
+    line-height: 1.52 !important;
   }
 
   main h3, main h4,
   [data-tab-content] h3, [data-tab-content] h4 {
-    font-size: 0.92rem !important;
-    line-height: 1.32 !important;
-    margin-bottom: 0.3rem !important;
+    font-size: 1.06rem !important;
+    line-height: 1.38 !important;
+    margin-bottom: 0.38rem !important;
   }
 
   main p, main li, main label,
   [data-tab-content] p, [data-tab-content] li, [data-tab-content] label {
-    font-size: 0.84rem !important;
-    line-height: 1.42 !important;
+    font-size: 0.97rem !important;
+    line-height: 1.52 !important;
   }
 
-  /* KaTeX nitido, compacto y con salto de linea seguro */
+  /* KaTeX nitido, proporcionado y con salto de linea seguro */
   .katex,
   .katex .katex-html,
   .katex-display > .katex {
@@ -471,9 +471,9 @@
     word-break: normal !important;
   }
   .katex {
-    font-size: 0.97em !important;
+    font-size: 1.04em !important;
     color: inherit !important;
-    line-height: 1.38 !important;
+    line-height: 1.44 !important;
   }
   .katex .base {
     display: inline !important;
@@ -483,7 +483,7 @@
     white-space: normal !important;
   }
   .katex-display {
-    margin: 0.35em 0 !important;
+    margin: 0.42em 0 !important;
     overflow-x: auto;
     overflow-y: hidden;
     max-width: 100% !important;
@@ -512,7 +512,6 @@
   }
 
   function hasSpanishProse(tex) {
-    // Quitar comandos LaTeX (\dots, \frac, etc.) antes de buscar palabras en español
     const stripped = tex.replace(/\\[a-zA-Z]+/g, " ");
     if (/[¿¡áéíóúüñÁÉÍÓÚÜÑ]/.test(stripped)) return true;
     const words = stripped.match(/\b[A-Za-z]{2,}\b/g) || [];
@@ -538,7 +537,6 @@
     }
   }
 
-  // Divide inteligentemente un bloque $...$ que contenga palabras en español mezcladas con matematica
   function renderSmartDollar(inner, displayMode) {
     const unwrapped = unwrapTextCmds(inner).trim();
     if (!unwrapped) return "";
@@ -547,7 +545,6 @@
       return renderPureTex(unwrapped, displayMode);
     }
 
-    // Separar fragmentos de texto español (incluyendo ¿ ¡ palabras, articulos y puntuacion) de fragmentos matematicos
     const prosePieceRegex = /([¿¡]?\s*(?:[A-Za-záéíóúüñÁÉÍÓÚÜÑ]{2,})(?:\s+(?:[A-Za-záéíóúüñÁÉÍÓÚÜÑ]+|[¿¡]))*[.,;:?!)]*)/g;
     let out = "";
     let last = 0;
@@ -555,7 +552,6 @@
 
     while ((m = prosePieceRegex.exec(unwrapped)) !== null) {
       const candidate = m[0];
-      // Verificar que no sea solo una funcion matematica como "sin" o "log"
       const alphaTokens = candidate.match(/[A-Za-záéíóúüñÁÉÍÓÚÜÑ]+/g) || [];
       const isOnlyMathFunc = alphaTokens.length === 1 && MATH_FUNCS.has(alphaTokens[0].toLowerCase()) && !/[¿¡áéíóúüñÁÉÍÓÚÜÑ]/.test(candidate);
       if (isOnlyMathFunc) continue;
@@ -563,7 +559,6 @@
       let mathBefore = unwrapped.slice(last, m.index);
       let proseText = candidate;
 
-      // Si antes del texto español habia una coma o parentesis pegado (ej: "\dots, ¿cuál..."), mover ", " al texto plano
       const trailingPunct = mathBefore.match(/([,;:]+|\()\s*$/);
       if (trailingPunct) {
         mathBefore = mathBefore.slice(0, mathBefore.length - trailingPunct[0].length);
@@ -606,7 +601,6 @@
   function formatMixedText(text) {
     let out = "";
     let lastIdx = 0;
-    // Detecta $$...$$, \[...\], \(...\), y pares $...$ sin rechazar sucesiones como $3, 9, 15...$
     const delimRegex = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|(?<!\\)\$(?!\s*\$)([^$\n]+?)(?<!\\)\$(?!\d))/g;
     let m;
     while ((m = delimRegex.exec(text)) !== null) {
@@ -690,11 +684,229 @@
     });
   }
 
+  function normalizeCursoLabel(val) {
+    const raw = (val || "").trim();
+    if (!raw) return raw;
+    if (/^(2do|2°|segundo)\b/i.test(raw)) return "2DO BGU";
+    if (/^(3ro|3ero|3°|tercero)\b/i.test(raw)) return "3ERO DE BGU";
+    return raw;
+  }
+
+  function formatCursoAndAsignaturaFields(scope) {
+    const root = scope || document;
+    root.querySelectorAll("label").forEach(function(lbl) {
+      const lblText = (lbl.textContent || "").trim();
+      const box = lbl.closest("div") || lbl.parentElement;
+      if (!box) return;
+
+      if (/\bASIGNATURA\b/i.test(lblText)) {
+        const inp = box.querySelector("input:not([type='hidden'])");
+        if (inp) {
+          inp.value = "Matemática";
+        } else {
+          box.querySelectorAll("div, span, p").forEach(function(el) {
+            if (/Matem[aá]tica\s+Aplicada/i.test(el.textContent || "")) {
+              el.textContent = "Matemática";
+            }
+          });
+        }
+      }
+
+      if (/\bCURSO\b/i.test(lblText)) {
+        const inp = box.querySelector("input:not([type='hidden'])");
+        if (inp) {
+          const norm = normalizeCursoLabel(inp.value);
+          if (norm && inp.value !== norm) {
+            inp.value = norm;
+          }
+        }
+        const sel = box.querySelector("select");
+        if (sel && !sel.dataset.cursoSimplified) {
+          sel.dataset.cursoSimplified = "1";
+          let currentLevel = "";
+          const selectedOpt = sel.options[sel.selectedIndex];
+          if (selectedOpt) {
+            currentLevel = normalizeCursoLabel(selectedOpt.textContent || selectedOpt.value);
+          }
+          if (!currentLevel) {
+            for (let i = 0; i < sel.options.length; i++) {
+              const n = normalizeCursoLabel(sel.options[i].textContent || "");
+              if (n === "2DO BGU" || n === "3ERO DE BGU") {
+                currentLevel = n;
+                break;
+              }
+            }
+          }
+          sel.innerHTML = "";
+          [
+            { v: "2DO BGU", t: "2DO BGU" },
+            { v: "3ERO DE BGU", t: "3ERO DE BGU" }
+          ].forEach(function(item) {
+            const opt = document.createElement("option");
+            opt.value = item.v;
+            opt.textContent = item.t;
+            if (currentLevel === item.v) opt.selected = true;
+            sel.appendChild(opt);
+          });
+        }
+      }
+    });
+  }
+
+  function unifyDatosInformativos() {
+    if (window.__datosInformativosUnified) return;
+    const headings = Array.from(document.querySelectorAll("h1, h2, h3, h4, div, p, span")).filter(function(el) {
+      if (el.children.length > 2) return false;
+      const t = (el.textContent || "").trim();
+      return /Datos Informativos del Estudiante/i.test(t) && t.length < 80;
+    });
+
+    const cards = [];
+    headings.forEach(function(h) {
+      let cur = h.parentElement;
+      let found = null;
+      while (cur && cur !== document.body) {
+        const inputsCount = cur.querySelectorAll("input, select").length;
+        if (inputsCount >= 3 && inputsCount <= 12) {
+          found = cur;
+          break;
+        }
+        cur = cur.parentElement;
+      }
+      if (found && !cards.includes(found)) {
+        cards.push(found);
+      }
+    });
+
+    if (cards.length === 0) {
+      formatCursoAndAsignaturaFields(document);
+      return;
+    }
+
+    window.__datosInformativosUnified = true;
+    cards.forEach(formatCursoAndAsignaturaFields);
+
+    const sourceCard = cards[0];
+    const masterCard = sourceCard.cloneNode(true);
+    masterCard.id = "datos-informativos-unico-master";
+    masterCard.style.display = "block";
+    masterCard.style.marginBottom = "1rem";
+
+    masterCard.querySelectorAll("[id]").forEach(function(el) {
+      el.dataset.origId = el.id;
+      el.removeAttribute("id");
+    });
+
+    const tabAnchor = document.querySelector("[role='tablist'], .tabs, #tabs, main form, form");
+    if (tabAnchor && tabAnchor.parentElement) {
+      tabAnchor.parentElement.insertBefore(masterCard, tabAnchor);
+    } else if (sourceCard.parentElement) {
+      sourceCard.parentElement.insertBefore(masterCard, sourceCard);
+    }
+
+    cards.forEach(function(c) {
+      c.style.display = "none";
+      c.setAttribute("aria-hidden", "true");
+    });
+
+    function fieldKey(el, idx) {
+      return el.getAttribute("name") || el.dataset.origId || el.id || ("idx_" + idx);
+    }
+
+    function syncMasterToAll() {
+      const masterFields = Array.from(masterCard.querySelectorAll("input, select, textarea"));
+      cards.forEach(function(hiddenCard) {
+        const targetFields = Array.from(hiddenCard.querySelectorAll("input, select, textarea"));
+        masterFields.forEach(function(mEl, idx) {
+          const key = fieldKey(mEl, idx);
+          let tEl = targetFields.find(function(cand, cIdx) {
+            return fieldKey(cand, cIdx) === key;
+          }) || targetFields[idx];
+          if (!tEl) return;
+          if (tEl.tagName === "SELECT" && mEl.tagName === "SELECT") {
+            if (tEl.options.length !== mEl.options.length) {
+              tEl.innerHTML = mEl.innerHTML;
+            }
+          }
+          if (tEl.value !== mEl.value) {
+            tEl.value = mEl.value;
+            tEl.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+      });
+    }
+
+    const masterInputs = Array.from(masterCard.querySelectorAll("input, select, textarea"));
+    masterInputs.forEach(function(mEl, idx) {
+      const handler = function() {
+        const key = fieldKey(mEl, idx);
+        cards.forEach(function(hiddenCard) {
+          const targetFields = Array.from(hiddenCard.querySelectorAll("input, select, textarea"));
+          const tEl = targetFields.find(function(cand, cIdx) { return fieldKey(cand, cIdx) === key; }) || targetFields[idx];
+          if (tEl && tEl.value !== mEl.value) {
+            tEl.value = mEl.value;
+            tEl.dispatchEvent(new Event("input", { bubbles: true }));
+            tEl.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+      };
+      mEl.addEventListener("input", handler);
+      mEl.addEventListener("change", handler);
+      mEl.addEventListener("blur", handler);
+    });
+
+    function normalizeValueByField(el, val) {
+      const box = el.closest("div");
+      const lbl = box ? box.querySelector("label") : null;
+      const t = lbl ? (lbl.textContent || "") : "";
+      if (/\bCURSO\b/i.test(t)) return normalizeCursoLabel(val);
+      if (/\bASIGNATURA\b/i.test(t)) return "Matemática";
+      return val;
+    }
+
+    const firstHiddenFields = Array.from(cards[0].querySelectorAll("input, select, textarea"));
+    firstHiddenFields.forEach(function(hEl, idx) {
+      const pullBack = function() {
+        const mEl = masterInputs[idx];
+        if (mEl && hEl.value && mEl.value !== hEl.value) {
+          mEl.value = normalizeValueByField(mEl, hEl.value);
+          syncMasterToAll();
+        }
+      };
+      hEl.addEventListener("input", pullBack);
+      hEl.addEventListener("change", pullBack);
+    });
+
+    setInterval(function() {
+      firstHiddenFields.forEach(function(hEl, idx) {
+        const mEl = masterInputs[idx];
+        if (!mEl) return;
+        const box = mEl.closest("div");
+        const lbl = box ? box.querySelector("label") : null;
+        const isCedula = lbl && /C[ÉE]DULA/i.test(lbl.textContent || "");
+        if (!isCedula && hEl.value && !mEl.value) {
+          mEl.value = normalizeValueByField(mEl, hEl.value);
+        }
+      });
+      syncMasterToAll();
+    }, 500);
+
+    document.addEventListener("submit", syncMasterToAll, true);
+    document.addEventListener("click", function(ev) {
+      if (ev.target && ev.target.closest("button, input[type='submit']")) {
+        syncMasterToAll();
+      }
+    }, true);
+
+    syncMasterToAll();
+  }
+
   function bootMath() {
     if (typeof katex === "undefined") {
       setTimeout(bootMath, 80);
       return;
     }
+    unifyDatosInformativos();
     renderAllMath(document.body);
     const obs = new MutationObserver(function(muts) {
       muts.forEach(function(m) {

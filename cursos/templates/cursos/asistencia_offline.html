@@ -1,0 +1,238 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Asistencia Offline — U.E. Dr. Enrique Noboa Arízaga</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; color: #0f172a; padding-bottom: 90px; }
+    .shell { max-width: 768px; margin: 0 auto; }
+    .header { background: #0f172a; color: #fff; padding: 16px; border-bottom-left-radius: 18px; border-bottom-right-radius: 18px; }
+    .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 10px; }
+    .badge-net { padding: 4px 10px; border-radius: 999px; font-weight: 800; }
+    .net-off { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
+    .net-on { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; }
+    select, input[type="date"] { width: 100%; padding: 12px; border-radius: 12px; border: 1.5px solid #334155; background: #1e293b; color: #fff; font-size: 14px; font-weight: 700; margin-top: 6px; }
+    .sync-box { margin-top: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .btn-sync { background: #10b981; color: #064e3b; border: none; border-radius: 12px; padding: 12px; font-weight: 900; font-size: 14px; cursor: pointer; }
+    .btn-sync:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+    .btn-json { background: #4f46e5; color: #fff; border: none; border-radius: 12px; padding: 12px 14px; font-weight: 800; font-size: 13px; cursor: pointer; }
+    .card { background: #fff; border: 1.5px solid #cbd5e1; border-radius: 16px; padding: 12px; margin: 10px 12px; }
+    .card.st-P { background: #f0fdf4; border-color: #6ee7b7; }
+    .card.st-F { background: #fff1f2; border-color: #fda4af; }
+    .card.st-A { background: #fffbeb; border-color: #fcd34d; }
+    .card.st-J { background: #f0f9ff; border-color: #7dd3fc; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+    .btn-code { min-height: 46px; border-radius: 12px; border: 1.5px solid #cbd5e1; background: #f8fafc; font-weight: 800; cursor: pointer; }
+    .btn-code.act-P { background: #059669; color: #fff; border-color: #047857; }
+    .btn-code.act-F { background: #e11d48; color: #fff; border-color: #be123c; }
+    .btn-code.act-A { background: #f59e0b; color: #0f172a; border-color: #d97706; }
+    .btn-code.act-J { background: #0284c7; color: #fff; border-color: #0369a1; }
+    .btn-board { min-height: 40px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .btn-board.picked { background: #4f46e5; color: #fff; border-color: #4338ca; }
+    .bulk-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px; }
+    .btn-bulk { padding: 12px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="status-bar">
+        <span id="net-badge" class="badge-net net-off">● Comprobando red...</span>
+        <span id="pending-badge" style="color:#fcd34d; font-weight:700;">0 cambios pendientes</span>
+      </div>
+      <h1 style="margin:0; font-size:18px;">Asistencia y Pizarra Móvil</h1>
+
+      <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:8px; margin-top:8px;">
+        <select id="select-curso"></select>
+        <input type="date" id="select-fecha" />
+      </div>
+
+      <div class="sync-box">
+        <button id="btn-sync" class="btn-sync" onclick="sincronizarConPlataforma()">☁️ Sincronizar con Plataforma</button>
+        <button class="btn-json" onclick="descargarRespaldoJson()">💾 .JSON</button>
+      </div>
+    </header>
+
+    <div class="bulk-row">
+      <button class="btn-bulk" style="background:#059669; color:#fff;" onclick="marcarTodosPresentes()">✓ Todos Presentes (P)</button>
+      <button class="btn-bulk" style="background:#e2e8f0; color:#1e293b;" onclick="limpiarDia()">✕ Limpiar Día</button>
+    </div>
+
+    <main id="lista-estudiantes"></main>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw-asistencia.js').catch(() => {});
+    }
+
+    const CURSOS = {{ cursos_json|safe }};
+    const STORAGE_KEY = 'noboa_asistencia_sync_v1';
+
+    let store = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || {
+      pendingSync: false,
+      cursos: {}
+    };
+
+    const selCurso = document.getElementById('select-curso');
+    const selFecha = document.getElementById('select-fecha');
+    selFecha.value = new Date().toISOString().slice(0, 10);
+
+    CURSOS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.nombre;
+      selCurso.appendChild(opt);
+      if (!store.cursos[c.id]) {
+        store.cursos[c.id] = {
+          scale: { EP: 10.0, BP: 8.5, DP: 6.5, NP: 4.0 },
+          records: {},
+          boardRecords: {}
+        };
+      }
+    });
+
+    function guardarLocal(marcarPendiente = true) {
+      if (marcarPendiente) store.pendingSync = true;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      actualizarEstadoRed();
+    }
+
+    function actualizarEstadoRed() {
+      const online = navigator.onLine;
+      const badge = document.getElementById('net-badge');
+      const btnSync = document.getElementById('btn-sync');
+      const pend = document.getElementById('pending-badge');
+
+      badge.textContent = online ? '● En línea (Listo para sincronizar)' : '● Sin internet (Modo Aula)';
+      badge.className = 'badge-net ' + (online ? 'net-on' : 'net-off');
+      btnSync.disabled = !online;
+      pend.textContent = store.pendingSync ? '⚠️ Cambios sin subir' : '✓ Todo sincronizado';
+    }
+
+    window.addEventListener('online', () => {
+      actualizarEstadoRed();
+      if (store.pendingSync) sincronizarConPlataforma();
+    });
+    window.addEventListener('offline', actualizarEstadoRed);
+
+    function renderLista() {
+      const cId = selCurso.value;
+      const fecha = selFecha.value;
+      const cursoObj = CURSOS.find(c => String(c.id) === String(cId));
+      const datos = store.cursos[cId];
+      const dayRec = datos.records[fecha] || {};
+      const dayBoard = datos.boardRecords[fecha] || {};
+
+      const cont = document.getElementById('lista-estudiantes');
+      cont.innerHTML = '';
+
+      cursoObj.estudiantes.forEach(est => {
+        const st = dayRec[est.cedula] || '';
+        const bd = dayBoard[est.cedula] || '';
+        const card = document.createElement('div');
+        card.className = 'card' + (st ? ' st-' + st : '');
+
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong>${est.num}. ${est.name}</strong>
+              <div style="font-size:11px; color:#64748b;">CI: ${est.cedula}</div>
+            </div>
+            <span style="font-size:12px; font-weight:800; color:#4338ca;">${bd ? bd + ' (' + datos.scale[bd] + ')' : ''}</span>
+          </div>
+          <div class="grid-4">
+            ${['P','F','A','J'].map(code => `
+              <button class="btn-code ${st === code ? 'act-' + code : ''}" onclick="setAsist('${est.cedula}','${code}')">${code}</button>
+            `).join('')}
+          </div>
+          <div class="grid-4" style="margin-top:8px;">
+            ${['EP','BP','DP','NP'].map(b => `
+              <button class="btn-board ${bd === b ? 'picked' : ''}" onclick="setBoard('${est.cedula}','${b}')">${b} (${datos.scale[b]})</button>
+            `).join('')}
+          </div>
+        `;
+        cont.appendChild(card);
+      });
+    }
+
+    function setAsist(cedula, code) {
+      const cId = selCurso.value, f = selFecha.value;
+      if (!store.cursos[cId].records[f]) store.cursos[cId].records[f] = {};
+      store.cursos[cId].records[f][cedula] = store.cursos[cId].records[f][cedula] === code ? '' : code;
+      guardarLocal(true);
+      renderLista();
+    }
+
+    function setBoard(cedula, code) {
+      const cId = selCurso.value, f = selFecha.value;
+      if (!store.cursos[cId].boardRecords[f]) store.cursos[cId].boardRecords[f] = {};
+      store.cursos[cId].boardRecords[f][cedula] = store.cursos[cId].boardRecords[f][cedula] === code ? '' : code;
+      guardarLocal(true);
+      renderLista();
+    }
+
+    function marcarTodosPresentes() {
+      const cId = selCurso.value, f = selFecha.value;
+      const cursoObj = CURSOS.find(c => String(c.id) === String(cId));
+      if (!store.cursos[cId].records[f]) store.cursos[cId].records[f] = {};
+      cursoObj.estudiantes.forEach(e => {
+        if (!store.cursos[cId].records[f][e.cedula]) store.cursos[cId].records[f][e.cedula] = 'P';
+      });
+      guardarLocal(true);
+      renderLista();
+    }
+
+    function limpiarDia() {
+      const cId = selCurso.value, f = selFecha.value;
+      store.cursos[cId].records[f] = {};
+      store.cursos[cId].boardRecords[f] = {};
+      guardarLocal(true);
+      renderLista();
+    }
+
+    async function sincronizarConPlataforma() {
+      if (!navigator.onLine) return alert('Conéctate a Wi-Fi o datos primero.');
+      const btn = document.getElementById('btn-sync');
+      btn.disabled = true;
+      btn.textContent = '⏳ Subiendo a la plataforma...';
+
+      try {
+        const resp = await fetch('/api/sincronizar-asistencia/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(store)
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          store.pendingSync = false;
+          guardarLocal(false);
+          alert('✅ ' + data.mensaje);
+        } else {
+          alert('⚠️ ' + data.mensaje);
+        }
+      } catch (err) {
+        alert('Error de conexión con el servidor.');
+      } finally {
+        btn.textContent = '☁️ Sincronizar con Plataforma';
+        actualizarEstadoRed();
+      }
+    }
+
+    function descargarRespaldoJson() {
+      const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Respaldo_Asistencia_Noboa_' + selFecha.value + '.json';
+      a.click();
+    }
+
+    selCurso.addEventListener('change', renderLista);
+    selFecha.addEventListener('change', renderLista);
+    actualizarEstadoRed();
+    renderLista();
+  </script>
+</body>
+</html>
