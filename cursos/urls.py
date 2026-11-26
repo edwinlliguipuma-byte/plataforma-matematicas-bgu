@@ -13,6 +13,8 @@ from .views_asistencia import (
     app_asistencia_offline,
     service_worker_asistencia,
     api_sincronizar_asistencia,
+    sabana_asistencia_pizarra,
+    exportar_sabana_csv,
 )
 
 urlpatterns = [
@@ -26,6 +28,8 @@ urlpatterns = [
     path('docente/asistencia-offline/', app_asistencia_offline, name='app_asistencia_offline'),
     path('sw-asistencia.js', service_worker_asistencia, name='sw_asistencia'),
     path('api/sincronizar-asistencia/', api_sincronizar_asistencia, name='api_sincronizar_asistencia'),
+    path('docente/sabana-asistencia/', sabana_asistencia_pizarra, name='sabana_asistencia_pizarra'),
+    path('docente/exportar-sabana/', exportar_sabana_csv, name='exportar_sabana_csv'),
     path('api/estudiante/<str:cedula>/', views.buscar_estudiante_json, name='buscar_estudiante_json'),
     path('api/evaluacion/guardar-nota/', views.api_guardar_nota_evaluacion, name='api_guardar_nota_evaluacion'),
     path('tarea/<int:tarea_id>/subir/', views.subir_tarea, name='subir_tarea'),
