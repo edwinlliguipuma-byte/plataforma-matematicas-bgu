@@ -199,27 +199,27 @@ def panel_docente_institucional(request):
     ):
         prom_entregas[row["estudiante_id"]][row["tarea__tipo_tarea"]] = float(row["p"] or 0)
 
-    # Evaluación Online = Módulos creados con IA ([Módulo IA] ...)
-    prom_evals_online_map = {}
+    # EIS = Nota única creada desde "Crear Módulo IA" ([Módulo IA] ...)
+    eis_nota_unica_map = {}
     for row in (
         ResultadoEvaluacion.objects.filter(
             estudiante_id__in=est_ids,
             evaluacion__titulo__startswith="[Módulo IA]",
         )
-        .values("estudiante_id")
-        .annotate(p=Avg("nota_obtenida"))
-    ):
-        prom_evals_online_map[row["estudiante_id"]] = float(row["p"] or 0)
-
-    # EIS = La nota única creada directamente en "Módulos de Clase y Lecciones" (sin promediar)
-    eis_nota_unica_map = {}
-    for row in (
-        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
-        .exclude(evaluacion__titulo__startswith="[Módulo IA]")
         .order_by("fecha_registro", "id")
         .values("estudiante_id", "nota_obtenida")
     ):
         eis_nota_unica_map[row["estudiante_id"]] = float(row["nota_obtenida"] or 0)
+
+    # Evaluación Online = Evaluaciones creadas manualmente en "Módulos de Clase y Lecciones"
+    prom_evals_online_map = {}
+    for row in (
+        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
+        .exclude(evaluacion__titulo__startswith="[Módulo IA]")
+        .values("estudiante_id")
+        .annotate(p=Avg("nota_obtenida"))
+    ):
+        prom_evals_online_map[row["estudiante_id"]] = float(row["p"] or 0)
 
     # Actuación en Clase = Promedio de asistencia sobre 10 ((P + A + J) / total_marcadas * 10)
     asist_stats = defaultdict(lambda: [0, 0])  # [asistidas, marcadas]
