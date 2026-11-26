@@ -14,10 +14,12 @@
             <div>
                 <p class="text-xs font-bold tracking-widest text-amber-400 uppercase">Unidad Educativa Técnica "Dr. Enrique Noboa" • La Troncal</p>
                 <h1 class="text-2xl md:text-3xl font-black text-white mt-1">📊 Panel Docente y Gestión Académica</h1>
-                <p class="text-slate-300 text-sm mt-1">Control centralizado de infografías con IA, revisión de cuadernos sellados, evaluaciones y esquelas.</p>
+                <p class="text-slate-300 text-sm mt-1">Control centralizado de infografías con IA, revisión de cuadernos sellados, asistencia, pizarra, evaluaciones y esquelas.</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <a href="/docente/crear-modulo-ia/" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow">✨ Crear Módulo IA</a>
+                <a href="/docente/asistencia-offline/" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow">📱 Tomar Asistencia</a>
+                <a href="/docente/sabana-asistencia/{% if curso_id_actual %}?curso={{ curso_id_actual }}{% endif %}" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow">📋 Sábana Asistencia</a>
                 <a href="/docente/esquelas/" class="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow">📋 Esquelas Padres</a>
                 <a href="/admin/cursos/muestrasellofirma/" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-sm shadow">🏅 Subir Sello/Firma</a>
                 <a href="/aula/" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow">🎓 Aula Virtual</a>
@@ -55,7 +57,7 @@
                     {% endfor %}
                 </select>
             </form>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
                 <a href="/admin/cursos/tarea/add/" class="bg-blue-700 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-xs">+ Nueva Tarea / Cuaderno</a>
                 <a href="?curso_id={{ curso_id_actual }}&exportar=csv" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs">📥 Descargar Excel (CSV)</a>
             </div>
@@ -66,35 +68,39 @@
             <table class="w-full text-left border-collapse text-sm">
                 <thead class="bg-slate-950 text-slate-400 text-xs uppercase border-b border-slate-800">
                     <tr>
-                        <th class="py-3.5 px-4">#</th>
-                        <th class="py-3.5 px-4">Cédula</th>
-                        <th class="py-3.5 px-4">Apellidos y Nombres</th>
-                        <th class="py-3.5 px-4">Curso</th>
-                        <th class="py-3.5 px-4 text-center">Materia</th>
-                        <th class="py-3.5 px-4 text-center">Deberes</th>
-                        <th class="py-3.5 px-4 text-center">Talleres</th>
-                        <th class="py-3.5 px-4 text-center">Evaluaciones</th>
-                        <th class="py-3.5 px-4 text-center">Promedio</th>
-                        <th class="py-3.5 px-4 text-right">Seguimiento</th>
+                        <th class="py-3.5 px-3">#</th>
+                        <th class="py-3.5 px-3">Cédula</th>
+                        <th class="py-3.5 px-3">Apellidos y Nombres</th>
+                        <th class="py-3.5 px-3">Curso</th>
+                        <th class="py-3.5 px-3 text-center">Materia</th>
+                        <th class="py-3.5 px-3 text-center">Deberes</th>
+                        <th class="py-3.5 px-3 text-center">Talleres</th>
+                        <th class="py-3.5 px-3 text-center text-cyan-300">Actuación en Clase</th>
+                        <th class="py-3.5 px-3 text-center text-amber-300">Lección / Pizarra</th>
+                        <th class="py-3.5 px-3 text-center text-indigo-300">Evaluación Online</th>
+                        <th class="py-3.5 px-3 text-center">Promedio</th>
+                        <th class="py-3.5 px-3 text-right">Seguimiento</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800">
                     {% for f in filas %}
                     <tr class="hover:bg-slate-800/40">
-                        <td class="py-3 px-4 text-slate-500">{{ forloop.counter }}</td>
-                        <td class="py-3 px-4 font-mono text-xs text-slate-300">{{ f.estudiante.cedula }}</td>
-                        <td class="py-3 px-4 font-bold text-white">{{ f.estudiante.nombre_completo }}</td>
-                        <td class="py-3 px-4 text-xs text-slate-300">{{ f.estudiante.curso.nombre }}</td>
-                        <td class="py-3 px-4 text-center">{{ f.materia }}</td>
-                        <td class="py-3 px-4 text-center">{{ f.deberes }}</td>
-                        <td class="py-3 px-4 text-center">{{ f.talleres }}</td>
-                        <td class="py-3 px-4 text-center">{{ f.evaluaciones }}</td>
-                        <td class="py-3 px-4 text-center">
+                        <td class="py-3 px-3 text-slate-500">{{ forloop.counter }}</td>
+                        <td class="py-3 px-3 font-mono text-xs text-slate-300">{{ f.estudiante.cedula }}</td>
+                        <td class="py-3 px-3 font-bold text-white whitespace-nowrap">{{ f.estudiante.nombre_completo }}</td>
+                        <td class="py-3 px-3 text-xs text-slate-300 whitespace-nowrap">{{ f.estudiante.curso.nombre }}</td>
+                        <td class="py-3 px-3 text-center">{{ f.materia }}</td>
+                        <td class="py-3 px-3 text-center">{{ f.deberes }}</td>
+                        <td class="py-3 px-3 text-center">{{ f.talleres }}</td>
+                        <td class="py-3 px-3 text-center font-semibold text-cyan-200">{{ f.actuacion_clase }}</td>
+                        <td class="py-3 px-3 text-center font-semibold text-amber-200">{{ f.leccion_pizarra }}</td>
+                        <td class="py-3 px-3 text-center font-semibold text-indigo-200">{{ f.evaluaciones }}</td>
+                        <td class="py-3 px-3 text-center">
                             <span class="px-2.5 py-1 rounded-full text-xs font-black {% if f.promedio >= 7 %}bg-emerald-950 text-emerald-300 border border-emerald-600{% else %}bg-red-950 text-red-300 border border-red-600{% endif %}">
                                 {{ f.promedio }}
                             </span>
                         </td>
-                        <td class="py-3 px-4 text-right whitespace-nowrap">
+                        <td class="py-3 px-3 text-right whitespace-nowrap">
                             {% if f.pendientes > 0 %}
                             <a href="{% url 'imprimir_esquela' f.estudiante.id %}" target="_blank" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-lg">
                                 📄 Esquela ({{ f.pendientes }})

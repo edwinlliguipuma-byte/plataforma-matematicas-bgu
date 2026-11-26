@@ -25,6 +25,8 @@ from .models import (
     ResultadoEvaluacion,
     ModuloInteractivo,
     EsquelaIncumplimiento,
+    RegistroAsistencia,
+    RegistroPizarra,
 )
 
 
@@ -61,6 +63,7 @@ def _normalizar_curso_bgu_post(request):
         mut = request.POST.copy()
         mut['curso'] = chosen.nombre
         request.POST = mut
+
 
 def _optimizar_imagen_b64(archivo):
     img = Image.open(archivo)
@@ -139,6 +142,7 @@ def _gemini_urlopen(req, timeout=165):
         raise last_err
     return urllib.request.urlopen(req, timeout=165)
 
+
 def _gemini_url(k):
     import json, urllib.request
     k = (k or "").strip().strip('"').strip("'")
@@ -171,6 +175,7 @@ def _gemini_url(k):
         pass
     return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={k}"
 
+
 @staff_member_required
 def panel_docente_institucional(request):
     cursos = list(CursoBGU.objects.all().order_by("nombre"))
@@ -202,6 +207,24 @@ def panel_docente_institucional(request):
     ):
         prom_evals_map[row["estudiante_id"]] = float(row["p"] or 0)
 
+    # Actuación en Clase = Promedio de asistencia sobre 10 ((P + A + J) / total_marcadas * 10)
+    asist_stats = defaultdict(lambda: [0, 0])  # [asistidas, marcadas]
+    for row in RegistroAsistencia.objects.filter(estudiante_id__in=est_ids).values("estudiante_id", "estado"):
+        est_code = (row["estado"] or "").strip().upper()
+        if est_code in ("P", "A", "J", "F"):
+            asist_stats[row["estudiante_id"]][1] += 1
+            if est_code in ("P", "A", "J"):
+                asist_stats[row["estudiante_id"]][0] += 1
+
+    # Lección / Pizarra = Promedio sincronizado desde la app offline
+    prom_pizarra_map = {}
+    for row in (
+        RegistroPizarra.objects.filter(estudiante_id__in=est_ids)
+        .values("estudiante_id")
+        .annotate(p=Avg("nota_cuanti"))
+    ):
+        prom_pizarra_map[row["estudiante_id"]] = float(row["p"] or 0)
+
     tareas_por_curso = defaultdict(int)
     for t in Tarea.objects.all().values("id", "curso_id"):
         tareas_por_curso[t["curso_id"]] += 1
@@ -231,7 +254,11 @@ def panel_docente_institucional(request):
         p_tal = prom_entregas[est.id].get("TALLER", 0.0)
         p_eva = prom_evals_map.get(est.id, 0.0)
 
-        notas_activas = [n for n in (p_mat, p_deb, p_tal, p_eva) if n > 0]
+        asistidas, marcadas = asist_stats[est.id]
+        p_actuacion = round((asistidas / marcadas) * 10.0, 2) if marcadas > 0 else 0.0
+        p_pizarra = prom_pizarra_map.get(est.id, 0.0)
+
+        notas_activas = [n for n in (p_mat, p_deb, p_tal, p_actuacion, p_pizarra, p_eva) if n > 0]
         promedio_final = round(sum(notas_activas) / len(notas_activas), 2) if notas_activas else 0.0
 
         tot_t = tareas_por_curso.get(est.curso_id, 0)
@@ -248,6 +275,8 @@ def panel_docente_institucional(request):
                 "materia": round(p_mat, 2),
                 "deberes": round(p_deb, 2),
                 "talleres": round(p_tal, 2),
+                "actuacion_clase": p_actuacion,
+                "leccion_pizarra": round(p_pizarra, 2),
                 "evaluaciones": round(p_eva, 2),
                 "promedio": promedio_final,
                 "pendientes": pendientes,
@@ -267,7 +296,9 @@ def panel_docente_institucional(request):
                 "Materia",
                 "Deberes",
                 "Talleres",
-                "Lecciones/Eval.",
+                "Actuación en Clase (/10)",
+                "Lección / Pizarra",
+                "Evaluación Online",
                 "Promedio General",
                 "Actividades Pendientes",
             ]
@@ -281,6 +312,8 @@ def panel_docente_institucional(request):
                     f["materia"],
                     f["deberes"],
                     f["talleres"],
+                    f["actuacion_clase"],
+                    f["leccion_pizarra"],
                     f["evaluaciones"],
                     f["promedio"],
                     f["pendientes"],
@@ -436,7 +469,6 @@ CANTIDADES EXACTAS OBLIGATORIAS:
             prompt += "\nFORMATO MATEMÁTICO: Envuelve TODA expresión matemática, exponente, fracción, integral o raíz entre signos de dólar ($...$), por ejemplo: $\\int (3x^2 + 4x - 5)\\,dx$ o $\\frac{x^3}{3}$. Nunca dejes comandos LaTeX sueltos sin $...$.\n"
             prompt += "\nREGLA DE VELOCIDAD Y CONCISION: Responde de forma directa y breve. Cada explicacion o paso de resolucion debe tener maximo 1 o 2 lineas cortas (sin rodeos), manteniendo todas las formulas matematicas entre $...$.\n"
             prompt += "\nREGLA DE ETIQUETAS (NO_TEXT_CMD): Nunca uses \\text{...} para frases en español; escribe el texto fuera de los signos $ y encierra solo las fórmulas matemáticas entre $...$ (ejemplo: $a_1$ primer término, $d = a_k - a_{k-1}$ diferencia).\n"
-            # REGLA_MATERIA_SENCILLA_GENERAL
             if especialidad:
                 prompt = prompt.replace(especialidad, "Matemática General")
             prompt += (
