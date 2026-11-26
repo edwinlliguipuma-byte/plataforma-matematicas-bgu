@@ -1,132 +1,12 @@
+import csv
 import json
-from datetime import datetime
-from django.shortcuts import render
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.admin.views.decorators import staff_member_required
-from .models import CursoBGU, EstudiantePerfil, RegistroAsistencia, RegistroPizarra
-
-
-@staff_member_required
-def app_asistencia_offline(request):
-    """Entrega la app móvil con todos los cursos y estudiantes reales de la BD."""
-    cursos_data = []
-    for curso in CursoBGU.objects.all().order_by("nombre"):
-        estudiantes = EstudiantePerfil.objects.filter(curso=curso).order_by("apellidos_nombres", "cedula")
-        cursos_data.append({
-            "id": curso.id,
-            "nombre": curso.nombre,
-            "estudiantes": [
-                {
-                    "num": idx + 1,
-                    "id": est.id,
-                    "cedula": est.cedula,
-                    "name": est.nombre_completo,
-                }
-                for idx, est in enumerate(estudiantes)
-            ],
-        })
-
-    return render(request, "cursos/asistencia_offline.html", {
-        "cursos_json": json.dumps(cursos_data, ensure_ascii=False),
-    })
-
-
-def service_worker_asistencia(request):
-    """Permite que el navegador del celular abra la app sin internet."""
-    sw_code = """
-    const CACHE_NAME = 'asistencia-noboa-v1';
-    const URLS_TO_CACHE = ['/docente/asistencia-offline/'];
-
-    self.addEventListener('install', event => {
-      event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(URLS_TO_CACHE))
-      );
-      self.skipWaiting();
-    });
-
-    self.addEventListener('fetch', event => {
-      if (event.request.method !== 'GET') return;
-      event.respondWith(
-        fetch(event.request)
-          .then(response => {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-            return response;
-          })
-          .catch(() => caches.match(event.request))
-      );
-    });
-    """
-    return HttpResponse(sw_code, content_type="application/javascript")
-
-
-@csrf_exempt
-def api_sincronizar_asistencia(request):
-    """Recibe el JSON desde el celular cuando llega a casa y guarda en la base de datos."""
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "mensaje": "Método no permitido"}, status=405)
-
-    try:
-        payload = json.loads(request.body.decode("utf-8"))
-        cursos_payload = payload.get("cursos", {})
-        guardados_asist = 0
-        guardados_piz = 0
-
-        for curso_id_str, datos_curso in cursos_payload.items():
-            scale = datos_curso.get("scale", {"EP": 10.0, "BP": 8.5, "DP": 6.5, "NP": 4.0})
-            records = datos_curso.get("records", {})
-            board_records = datos_curso.get("boardRecords", {})
-
-            estudiantes_map = {
-                e.cedula: e for e in EstudiantePerfil.objects.filter(curso_id=int(curso_id_str))
-            }
-
-            # 1. Guardar Asistencias
-            for fecha_str, marcas in records.items():
-                fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date()
-                for cedula, estado in marcas.items():
-                    est = estudiantes_map.get(cedula)
-                    if not est:
-                        continue
-                    if estado in ("P", "F", "A", "J"):
-                        RegistroAsistencia.objects.update_or_create(
-                            estudiante=est,
-                            fecha=fecha_obj,
-                            defaults={"estado": estado},
-                        )
-                        guardados_asist += 1
-                    elif estado == "":
-                        RegistroAsistencia.objects.filter(estudiante=est, fecha=fecha_obj).delete()
-
-            # 2. Guardar Notas de Pizarra / Lección
-            for fecha_str, marcas_b in board_records.items():
-                fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date()
-                for cedula, b_code in marcas_b.items():
-                    est = estudiantes_map.get(cedula)
-                    if not est:
-                        continue
-                    if b_code in ("EP", "BP", "DP", "NP"):
-                        nota_val = float(scale.get(b_code, 0))
-                        RegistroPizarra.objects.update_or_create(
-                            estudiante=est,
-                            fecha=fecha_obj,
-                            defaults={"codigo_cuali": b_code, "nota_cuanti": nota_val},
-                        )
-                        guardados_piz += 1
-                    elif b_code == "":
-                        RegistroPizarra.objects.filter(estudiante=est, fecha=fecha_obj).delete()
-
-        return JsonResponse({
-            "ok": True,
-            "mensaje": f"Sincronizado: {guardados_asist} asistencias y {guardados_piz} notas de pizarra.",
-        })
-    except Exception as e:
-        return JsonResponse({"ok": False, "mensaje": f"Error al sincronizar: {str(e)}"}, status=400)import csv
 import unicodedata
+from datetime import datetime
+from decimal import Decimal
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from .models import CursoBGU, EstudiantePerfil, RegistroAsistencia, RegistroPizarra
 
 
@@ -135,6 +15,125 @@ def _clave_orden(est):
     return "".join(
         c for c in unicodedata.normalize("NFD", txt) if unicodedata.category(c) != "Mn"
     )
+
+
+@staff_member_required(login_url="/admin/login/")
+def app_asistencia_offline(request):
+    cursos = CursoBGU.objects.all().order_by("nombre")
+    cursos_data = []
+    for c in cursos:
+        estudiantes = sorted(
+            EstudiantePerfil.objects.filter(curso=c),
+            key=_clave_orden,
+        )
+        cursos_data.append({
+            "id": c.id,
+            "nombre": c.nombre,
+            "estudiantes": [
+                {
+                    "id": e.id,
+                    "nombre": e.nombre_completo,
+                    "cedula": e.cedula,
+                }
+                for e in estudiantes
+            ],
+        })
+
+    return render(request, "cursos/asistencia_offline.html", {
+        "cursos": cursos,
+        "cursos_json": json.dumps(cursos_data, ensure_ascii=False),
+    })
+
+
+def service_worker_asistencia(request):
+    sw_code = """
+const CACHE_NAME = 'asistencia-bgu-v1';
+const URLS_TO_CACHE = ['/docente/asistencia-offline/'];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(URLS_TO_CACHE))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
+});
+"""
+    return HttpResponse(sw_code, content_type="application/javascript")
+
+
+@csrf_exempt
+def api_sincronizar_asistencia(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "mensaje": "Método no permitido"}, status=405)
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        asistencias = data.get("asistencias", [])
+        pizarras = data.get("pizarras", [])
+
+        total_asist = 0
+        total_piz = 0
+
+        for item in asistencias:
+            est_id = item.get("estudiante_id")
+            fecha_str = item.get("fecha")
+            estado = (item.get("estado") or "").strip().upper()
+            if est_id and fecha_str and estado in ("P", "F", "A", "J"):
+                fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
+                RegistroAsistencia.objects.update_or_create(
+                    estudiante_id=int(est_id),
+                    fecha=fecha_obj,
+                    defaults={"estado": estado},
+                )
+                total_asist += 1
+
+        equivalencias = {
+            "EP": Decimal("10.00"),
+            "BP": Decimal("8.50"),
+            "DP": Decimal("6.50"),
+            "NP": Decimal("4.00"),
+        }
+
+        for item in pizarras:
+            est_id = item.get("estudiante_id")
+            fecha_str = item.get("fecha")
+            cuali = (item.get("codigo_cuali") or item.get("cuali") or "").strip().upper()
+            if est_id and fecha_str and cuali in equivalencias:
+                fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
+                nota_val = item.get("nota_cuanti")
+                nota_dec = Decimal(str(nota_val)) if nota_val is not None else equivalencias[cuali]
+                RegistroPizarra.objects.update_or_create(
+                    estudiante_id=int(est_id),
+                    fecha=fecha_obj,
+                    defaults={
+                        "codigo_cuali": cuali,
+                        "nota_cuanti": nota_dec,
+                    },
+                )
+                total_piz += 1
+
+        return JsonResponse({
+            "ok": True,
+            "mensaje": f"Sincronizado correctamente: {total_asist} asistencias y {total_piz} notas de pizarra.",
+        })
+    except Exception as e:
+        return JsonResponse({"ok": False, "mensaje": f"Error al sincronizar: {str(e)}"}, status=400)
 
 
 @staff_member_required(login_url="/admin/login/")
@@ -206,7 +205,10 @@ def sabana_asistencia_pizarra(request):
                 if reg:
                     val = float(reg.nota_cuanti)
                     notas.append(val)
-                    celdas.append({"nota": f"{val:.2f}".rstrip("0").rstrip("."), "cuali": reg.codigo_cuali})
+                    celdas.append({
+                        "nota": f"{val:.2f}".rstrip("0").rstrip("."),
+                        "cuali": reg.codigo_cuali,
+                    })
                 else:
                     celdas.append(None)
             promedio = round(sum(notas) / len(notas), 2) if notas else 0.0
