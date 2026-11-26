@@ -3,9 +3,11 @@ import os
 import io
 import csv
 import json
+import time
 import base64
 import urllib.request
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from urllib.parse import quote
 from PIL import Image
@@ -112,77 +114,25 @@ def _formatear_whatsapp_ec(telefono):
     return limpio
 
 
-def _gemini_urlopen(req, timeout=90):
-    import time
-    orig_url = req.full_url if hasattr(req, "full_url") else str(req)
-    if "generativelanguage.googleapis.com" not in orig_url or ":generateContent" not in orig_url:
-        return urllib.request.urlopen(req, timeout=timeout)
-    base_part, q_part = orig_url.split("?", 1) if "?" in orig_url else (orig_url, "")
-    k = ""
-    for seg in q_part.split("&"):
-        if seg.startswith("key="):
-            k = seg[4:]
-    cands = [orig_url]
-    if k:
-        for alt in ("models/gemini-flash-latest", "models/gemini-2.5-flash", "models/gemini-3.8-flash", "models/gemini-3.5-flash"):
-            u_alt = f"https://generativelanguage.googleapis.com/v1beta/{alt}:generateContent?key={k}"
-            if u_alt not in cands:
-                cands.append(u_alt)
-    last_err = None
-    for u_try in cands[:4]:
-        raw_data = req.data
-        # Primer intento con thinkingBudget=0 para respuesta ultrarrápida (<10s)
-        for quitar_thinking in (False, True):
-            data_send = raw_data
-            if quitar_thinking and raw_data:
-                try:
-                    obj = json.loads(raw_data.decode("utf-8"))
-                    if "generationConfig" in obj and "thinkingConfig" in obj["generationConfig"]:
-                        del obj["generationConfig"]["thinkingConfig"]
-                        data_send = json.dumps(obj).encode("utf-8")
-                except Exception:
-                    pass
-            r_try = urllib.request.Request(u_try, data=data_send, headers=dict(req.header_items()), method=req.get_method())
-            try:
-                return urllib.request.urlopen(r_try, timeout=90)
-            except urllib.error.HTTPError as he:
-                last_err = he
-                err_txt = ""
-                try:
-                    err_txt = he.read().decode("utf-8", errors="ignore")
-                except Exception:
-                    pass
-                if he.code == 400 and "thinking" in err_txt.lower() and not quitar_thinking:
-                    continue
-                if he.code in (404, 429, 500, 502, 503, 504):
-                    time.sleep(0.8)
-                    break
-                raise Exception(f"HTTP {he.code}: {err_txt[:240]}")
-            except Exception as te:
-                last_err = te
-                break
-    if last_err:
-        raise last_err
-    return urllib.request.urlopen(req, timeout=90)
-
-
 def _gemini_url(k):
     k = (k or "").strip().strip('"').strip("'")
     pref = [
-        "models/gemini-flash-latest",
+        "models/gemini-3.5-flash-lite",
+        "models/gemini-3.1-flash-lite",
+        "models/gemini-2.5-flash-lite",
         "models/gemini-3.8-flash",
         "models/gemini-3.5-flash",
-        "models/gemini-3.0-flash",
+        "models/gemini-flash-latest",
         "models/gemini-2.5-flash",
     ]
     try:
         u = f"https://generativelanguage.googleapis.com/v1beta/models?key={k}"
-        d = json.loads(urllib.request.urlopen(u, timeout=20).read().decode("utf-8"))
+        d = json.loads(urllib.request.urlopen(u, timeout=15).read().decode("utf-8"))
         ms = [
             m["name"] for m in d.get("models", [])
             if "generateContent" in m.get("supportedGenerationMethods", [])
             and "gemini" in m.get("name", "").lower()
-            and not any(x in m.get("name", "").lower() for x in ("tts", "image", "audio", "embedding", "exp", "preview", "1.5", "2.0", "vision", "aqa", "veo", "lite"))
+            and not any(x in m.get("name", "").lower() for x in ("tts", "image", "audio", "embedding", "exp", "preview", "1.5", "2.0", "vision", "aqa", "veo"))
         ]
         for m in pref:
             if m in ms:
@@ -195,6 +145,75 @@ def _gemini_url(k):
     except Exception:
         pass
     return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={k}"
+
+
+def _llamar_gemini_json(api_key, base_url, parts):
+    base_part, q_part = base_url.split("?", 1) if "?" in base_url else (base_url, "")
+    k = ""
+    for seg in q_part.split("&"):
+        if seg.startswith("key="):
+            k = seg[4:]
+
+    cands = [base_url]
+    if k:
+        for alt in (
+            "models/gemini-3.5-flash-lite",
+            "models/gemini-2.5-flash-lite",
+            "models/gemini-3.8-flash",
+            "models/gemini-flash-latest",
+        ):
+            u_alt = f"https://generativelanguage.googleapis.com/v1beta/{alt}:generateContent?key={k}"
+            if u_alt not in cands:
+                cands.append(u_alt)
+
+    last_err = None
+    for u_try in cands[:4]:
+        es_25 = "2.5" in u_try
+        thinking_cfg = {"thinkingBudget": 0} if es_25 else {"thinkingLevel": "LOW"}
+
+        for usar_thinking in (True, False):
+            gen_cfg = {
+                "responseMimeType": "application/json",
+                "temperature": 0.3,
+            }
+            if usar_thinking:
+                gen_cfg["thinkingConfig"] = thinking_cfg
+
+            payload = {
+                "contents": [{"parts": parts}],
+                "generationConfig": gen_cfg,
+            }
+            req = urllib.request.Request(
+                u_try,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=75) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(raw_text)
+            except urllib.error.HTTPError as he:
+                err_txt = ""
+                try:
+                    err_txt = he.read().decode("utf-8", errors="ignore")
+                except Exception:
+                    pass
+                last_err = Exception(f"HTTP {he.code} [{u_try.split('/')[-1].split('?')[0]}]: {err_txt[:220]}")
+                if he.code == 400 and "thinking" in err_txt.lower() and usar_thinking:
+                    continue
+                if he.code in (404, 429, 500, 502, 503, 504):
+                    time.sleep(0.5)
+                    break
+                raise last_err
+            except Exception as te:
+                last_err = Exception(f"{te} [{u_try.split('/')[-1].split('?')[0]}]")
+                break
+
+    if last_err:
+        raise last_err
+    raise Exception("No se pudo obtener respuesta de Gemini.")
 
 
 @staff_member_required
@@ -438,19 +457,22 @@ def crear_modulo_ia(request):
             error_msg = "Debes ingresar el tema del módulo y seleccionar el curso."
         else:
             curso = get_object_or_404(CursoBGU, id=curso_id)
-            prompt = f"""
-Eres un docente especialista de Bachillerato en Ecuador (Unidad Educativa Técnica "Dr. Enrique Noboa" - La Troncal).
-Genera un módulo didáctico completo, claro y muy sencillo sobre:
+            destreza_txt = destreza if destreza else "Alineado al currículo vigente del Ministerio de Educación de Ecuador."
+
+            # Petición 1 (en paralelo): Infografía + Tarea Guiada + Deber
+            prompt_parte1 = f"""
+Eres docente de Bachillerato en Ecuador (U.E. Técnica "Dr. Enrique Noboa" - La Troncal).
+Genera la guía didáctica sencilla y directa sobre:
 - Tema: {titulo}
 - Asignatura: {asignatura}
 - Curso: {curso.nombre}
-- Destreza e Indicadores de Evaluación: {destreza if destreza else "Alineado al currículo vigente del Ministerio de Educación de Ecuador."}
+- Destreza e Indicadores: {destreza_txt}
 {"- Analiza también las imágenes adjuntas del texto escolar y extrae fielmente sus conceptos y ejercicios." if fotos else ""}
 
-REGLAS DE FORMATO Y VELOCIDAD:
-1. Usa notación LaTeX entre signos de dólar simples ($...$) solo para fórmulas matemáticas (ej. $a_n = 3n + 1$, $\\frac{{2k+1}}{{k}}$). NUNCA pongas palabras en español ni \\text{{...}} dentro de $...$.
-2. Sé conciso y directo: explicaciones y pasos cortos (máximo 1 o 2 líneas), sin textos largos ni enfoques de especialidad técnica.
-3. Devuelve ÚNICAMENTE un objeto JSON válido con exactamente esta estructura:
+REGLAS:
+1. Usa LaTeX entre $...$ solo para fórmulas matemáticas (ej. $a_n = 3n + 1$, $\\frac{{2k+1}}{{k}}$). NUNCA pongas palabras en español ni \\text{{...}} dentro de $...$.
+2. Explicaciones y pasos muy claros y cortos (máximo 1 o 2 líneas), sin textos largos ni enfoques de especialidad técnica.
+3. Devuelve ÚNICAMENTE un JSON válido con esta estructura:
 {{
   "subtitulo": "Frase corta descriptiva del módulo",
   "notacion_general": "Fórmula o principio central en LaTeX o texto corto",
@@ -488,50 +510,65 @@ REGLAS DE FORMATO Y VELOCIDAD:
       "tema": "Etiqueta corta",
       "enunciado": "Ejercicio propuesto para resolver en el cuaderno"
     }}
-  ],
+  ]
+}}
+CANTIDADES EXACTAS: "anatomia_pasos" (4), "tarjetas_infografia" (5 con colores: "blue", "emerald", "purple", "amber", "rose"), "tarea_guiada" (6), "deber_casa" (10).
+"""
+
+            # Petición 2 (en paralelo): Evaluación de 20 preguntas
+            prompt_parte2 = f"""
+Eres docente de Bachillerato en Ecuador (U.E. Técnica "Dr. Enrique Noboa" - La Troncal).
+Genera una evaluación de 20 preguntas de opción múltiple claras y didácticas sobre:
+- Tema: {titulo}
+- Asignatura: {asignatura}
+- Curso: {curso.nombre}
+- Destreza e Indicadores: {destreza_txt}
+{"- Toma en cuenta también las imágenes adjuntas del texto escolar." if fotos else ""}
+
+REGLAS:
+1. Usa LaTeX entre $...$ solo para fórmulas matemáticas (ej. $\\bar{{x}} = 12$). NUNCA pongas palabras en español ni \\text{{...}} dentro de $...$.
+2. Preguntas y opciones concisas y directas.
+3. Devuelve ÚNICAMENTE un JSON válido con exactamente 20 preguntas:
+{{
   "evaluacion_20": [
     {{
       "numero": 1,
-      "pregunta": "Pregunta de evaluación",
+      "pregunta": "Enunciado de la pregunta",
       "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"],
       "indice_correcto": 0
     }}
   ]
 }}
-
-CANTIDADES EXACTAS OBLIGATORIAS:
-- "anatomia_pasos": 4 elementos.
-- "tarjetas_infografia": 5 tarjetas (colores en orden: "blue", "emerald", "purple", "amber", "rose").
-- "tarea_guiada": 6 ejercicios con explicación.
-- "deber_casa": 10 ejercicios propuestos.
-- "evaluacion_20": 20 preguntas de opción múltiple (4 opciones cada una, indice_correcto de 0 a 3).
 """
-            parts = [{"text": prompt}]
-            for foto in fotos[:3]:
-                b64_img = _optimizar_imagen_b64(foto)
-                parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-            payload = {
-                "contents": [{"parts": parts}],
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "temperature": 0.3,
-                    "thinkingConfig": {"thinkingBudget": 0},
-                },
-            }
+            imagenes_b64 = []
+            for foto in fotos[:3]:
+                imagenes_b64.append(_optimizar_imagen_b64(foto))
+
+            parts_1 = [{"text": prompt_parte1}]
+            parts_2 = [{"text": prompt_parte2}]
+            for b64_img in imagenes_b64:
+                inline = {"inline_data": {"mime_type": "image/jpeg", "data": b64_img}}
+                parts_1.append(inline)
+                parts_2.append(inline)
 
             url = _gemini_url(api_key)
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
             try:
-                with _gemini_urlopen(req, timeout=90) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                parsed = json.loads(raw_text)
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    fut_1 = pool.submit(_llamar_gemini_json, api_key, url, parts_1)
+                    fut_2 = pool.submit(_llamar_gemini_json, api_key, url, parts_2)
+                    res_1 = fut_1.result()
+                    res_2 = fut_2.result()
+
+                parsed = {
+                    "subtitulo": res_1.get("subtitulo", titulo),
+                    "notacion_general": res_1.get("notacion_general", ""),
+                    "anatomia_pasos": res_1.get("anatomia_pasos", []),
+                    "tarjetas_infografia": res_1.get("tarjetas_infografia", []),
+                    "tarea_guiada": res_1.get("tarea_guiada", []),
+                    "deber_casa": res_1.get("deber_casa", []),
+                    "evaluacion_20": res_2.get("evaluacion_20", []),
+                }
 
                 evaluacion = Evaluacion.objects.create(
                     titulo=f"[Módulo IA] {titulo}",
@@ -620,10 +657,6 @@ CANTIDADES EXACTAS OBLIGATORIAS:
 
                 return redirect("ver_modulo_interactivo", modulo_id=modulo_principal.id)
             except Exception as e:
-                _b = e.read().decode('utf-8', errors='ignore')[:260] if hasattr(e, 'read') else ''
-                _u = locals().get('url', '').split('?')[0].split('/')[-1]
-                _kl = len((locals().get('api_key') or '').strip())
-                if _b or _u: e = Exception(f'{e} [{_u} | key={_kl}] {_b}')
                 error_msg = f"Ocurrió un inconveniente al generar con Gemini: {str(e)}"
 
     return render(
@@ -722,10 +755,6 @@ def api_guardar_evaluacion_modulo(request, modulo_id):
             }
         )
     except Exception as e:
-        _b = e.read().decode('utf-8', errors='ignore')[:260] if hasattr(e, 'read') else ''
-        _u = locals().get('url', '').split('?')[0].split('/')[-1]
-        _kl = len((locals().get('api_key') or '').strip())
-        if _b or _u: e = Exception(f'{e} [{_u} | key={_kl}] {_b}')
         return JsonResponse({"ok": False, "mensaje": str(e)}, status=400)
 
 
