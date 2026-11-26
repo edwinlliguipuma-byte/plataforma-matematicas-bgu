@@ -47,7 +47,7 @@ def app_asistencia_offline(request):
 
 def service_worker_asistencia(request):
     sw_code = """
-const CACHE_NAME = 'asistencia-bgu-v1';
+const CACHE_NAME = 'asistencia-bgu-v5';
 const URLS_TO_CACHE = ['/docente/asistencia-offline/'];
 
 self.addEventListener('install', event => {
@@ -58,7 +58,11 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', event => {
@@ -103,30 +107,31 @@ def api_sincronizar_asistencia(request):
                 )
                 total_asist += 1
 
-        equivalencias = {
-            "EP": Decimal("10.00"),
-            "BP": Decimal("8.50"),
-            "DP": Decimal("6.50"),
-            "NP": Decimal("4.00"),
+        mapa_codigo_interno = {
+            10: "EP",
+            8: "BP",
+            6: "DP",
+            4: "NP",
         }
 
         for item in pizarras:
             est_id = item.get("estudiante_id")
             fecha_str = item.get("fecha")
-            cuali = (item.get("codigo_cuali") or item.get("cuali") or "").strip().upper()
-            if est_id and fecha_str and cuali in equivalencias:
-                fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
-                nota_val = item.get("nota_cuanti")
-                nota_dec = Decimal(str(nota_val)) if nota_val is not None else equivalencias[cuali]
-                RegistroPizarra.objects.update_or_create(
-                    estudiante_id=int(est_id),
-                    fecha=fecha_obj,
-                    defaults={
-                        "codigo_cuali": cuali,
-                        "nota_cuanti": nota_dec,
-                    },
-                )
-                total_piz += 1
+            nota_raw = item.get("nota_cuanti")
+            if est_id and fecha_str and nota_raw is not None:
+                nota_num = float(nota_raw)
+                nota_int = int(round(nota_num))
+                if nota_int in mapa_codigo_interno:
+                    fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
+                    RegistroPizarra.objects.update_or_create(
+                        estudiante_id=int(est_id),
+                        fecha=fecha_obj,
+                        defaults={
+                            "codigo_cuali": mapa_codigo_interno[nota_int],
+                            "nota_cuanti": Decimal(f"{nota_num:.2f}"),
+                        },
+                    )
+                    total_piz += 1
 
         return JsonResponse({
             "ok": True,
@@ -151,6 +156,8 @@ def sabana_asistencia_pizarra(request):
     fechas_pizarra = []
     filas_asistencia = []
     filas_pizarra = []
+    promedio_general_asistencia = 0.0
+    promedio_general_pizarra = 0.0
 
     if curso_actual:
         estudiantes = sorted(
@@ -158,7 +165,7 @@ def sabana_asistencia_pizarra(request):
             key=_clave_orden,
         )
 
-        # 1. ASISTENCIA HORIZONTAL
+        # 1. TABLA HORIZONTAL DE ASISTENCIA + PORCENTAJE TRIMESTRAL
         fechas_asistencia = list(
             RegistroAsistencia.objects.filter(estudiante__curso=curso_actual)
             .values_list("fecha", flat=True)
@@ -168,26 +175,44 @@ def sabana_asistencia_pizarra(request):
         asist_qs = RegistroAsistencia.objects.filter(estudiante__curso=curso_actual)
         mapa_asist = {(a.estudiante_id, a.fecha): a.estado for a in asist_qs}
 
+        porcentajes_curso = []
         for idx, est in enumerate(estudiantes, start=1):
             celdas = []
-            marcadas = 0
-            asistidas = 0
+            cnt_p = cnt_f = cnt_a = cnt_j = 0
             for f in fechas_asistencia:
                 est_val = mapa_asist.get((est.id, f), "-")
                 celdas.append(est_val)
-                if est_val in ("P", "A", "J", "F"):
-                    marcadas += 1
-                    if est_val in ("P", "A", "J"):
-                        asistidas += 1
+                if est_val == "P":
+                    cnt_p += 1
+                elif est_val == "F":
+                    cnt_f += 1
+                elif est_val == "A":
+                    cnt_a += 1
+                elif est_val == "J":
+                    cnt_j += 1
+
+            marcadas = cnt_p + cnt_f + cnt_a + cnt_j
+            asistidas = cnt_p + cnt_a + cnt_j
             porcentaje = round((asistidas / marcadas) * 100, 1) if marcadas > 0 else 0.0
+            if marcadas > 0:
+                porcentajes_curso.append(porcentaje)
+
             filas_asistencia.append({
                 "num": idx,
                 "estudiante": est,
                 "celdas": celdas,
+                "cnt_p": cnt_p,
+                "cnt_f": cnt_f,
+                "cnt_a": cnt_a,
+                "cnt_j": cnt_j,
+                "marcadas": marcadas,
                 "porcentaje": porcentaje,
             })
 
-        # 2. PIZARRA HORIZONTAL
+        if porcentajes_curso:
+            promedio_general_asistencia = round(sum(porcentajes_curso) / len(porcentajes_curso), 1)
+
+        # 2. TABLA HORIZONTAL DE PIZARRA + PROMEDIO TRIMESTRAL
         fechas_pizarra = list(
             RegistroPizarra.objects.filter(estudiante__curso=curso_actual)
             .values_list("fecha", flat=True)
@@ -197,6 +222,7 @@ def sabana_asistencia_pizarra(request):
         piz_qs = RegistroPizarra.objects.filter(estudiante__curso=curso_actual)
         mapa_piz = {(p.estudiante_id, p.fecha): p for p in piz_qs}
 
+        promedios_curso = []
         for idx, est in enumerate(estudiantes, start=1):
             celdas = []
             notas = []
@@ -205,19 +231,27 @@ def sabana_asistencia_pizarra(request):
                 if reg:
                     val = float(reg.nota_cuanti)
                     notas.append(val)
-                    celdas.append({
-                        "nota": f"{val:.2f}".rstrip("0").rstrip("."),
-                        "cuali": reg.codigo_cuali,
-                    })
+                    celdas.append(f"{val:.2f}".rstrip("0").rstrip("."))
                 else:
                     celdas.append(None)
-            promedio = round(sum(notas) / len(notas), 2) if notas else 0.0
+
+            tiene_notas = len(notas) > 0
+            promedio = round(sum(notas) / len(notas), 2) if tiene_notas else 0.0
+            if tiene_notas:
+                promedios_curso.append(promedio)
+
             filas_pizarra.append({
                 "num": idx,
                 "estudiante": est,
                 "celdas": celdas,
-                "promedio": f"{promedio:.2f}",
+                "cantidad_notas": len(notas),
+                "tiene_notas": tiene_notas,
+                "promedio": f"{promedio:.2f}" if tiene_notas else "-",
+                "promedio_num": promedio,
             })
+
+        if promedios_curso:
+            promedio_general_pizarra = round(sum(promedios_curso) / len(promedios_curso), 2)
 
     return render(request, "cursos/sabana_asistencia.html", {
         "cursos": cursos,
@@ -226,13 +260,15 @@ def sabana_asistencia_pizarra(request):
         "filas_asistencia": filas_asistencia,
         "fechas_pizarra": fechas_pizarra,
         "filas_pizarra": filas_pizarra,
+        "promedio_general_asistencia": promedio_general_asistencia,
+        "promedio_general_pizarra": f"{promedio_general_pizarra:.2f}",
     })
 
 
 @staff_member_required(login_url="/admin/login/")
 def exportar_sabana_csv(request):
     curso_id = request.GET.get("curso", "").strip()
-    tipo = request.GET.get("tipo", "asistencia").strip()
+    tipo = request.GET.get("tipo", "consolidado").strip()
     curso = CursoBGU.objects.filter(id=int(curso_id)).first() if curso_id.isdigit() else None
 
     response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
@@ -245,54 +281,118 @@ def exportar_sabana_csv(request):
 
     estudiantes = sorted(EstudiantePerfil.objects.filter(curso=curso), key=_clave_orden)
 
-    if tipo == "pizarra":
-        fechas = list(
-            RegistroPizarra.objects.filter(estudiante__curso=curso)
-            .values_list("fecha", flat=True)
-            .distinct()
-            .order_by("fecha")
+    fechas_asist = list(
+        RegistroAsistencia.objects.filter(estudiante__curso=curso)
+        .values_list("fecha", flat=True)
+        .distinct()
+        .order_by("fecha")
+    )
+    mapa_asist = {(a.estudiante_id, a.fecha): a.estado for a in RegistroAsistencia.objects.filter(estudiante__curso=curso)}
+
+    fechas_piz = list(
+        RegistroPizarra.objects.filter(estudiante__curso=curso)
+        .values_list("fecha", flat=True)
+        .distinct()
+        .order_by("fecha")
+    )
+    mapa_piz = {(p.estudiante_id, p.fecha): float(p.nota_cuanti) for p in RegistroPizarra.objects.filter(estudiante__curso=curso)}
+
+    if tipo == "asistencia":
+        encabezado = (
+            ["N°", "Apellidos y Nombres", "Cédula"]
+            + [f.strftime("%d/%m/%Y") for f in fechas_asist]
+            + ["P", "F", "A", "J", "% Asistencia Trimestral"]
         )
-        mapa = {(p.estudiante_id, p.fecha): float(p.nota_cuanti) for p in RegistroPizarra.objects.filter(estudiante__curso=curso)}
-        encabezado = ["N°", "Apellidos y Nombres", "Cédula"] + [f.strftime("%d/%m/%Y") for f in fechas] + ["Promedio Pizarra"]
+        writer.writerow(encabezado)
+
+        for idx, est in enumerate(estudiantes, start=1):
+            fila = [idx, est.nombre_completo, est.cedula]
+            cnt_p = cnt_f = cnt_a = cnt_j = 0
+            for f in fechas_asist:
+                val = mapa_asist.get((est.id, f), "-")
+                fila.append(val)
+                if val == "P":
+                    cnt_p += 1
+                elif val == "F":
+                    cnt_f += 1
+                elif val == "A":
+                    cnt_a += 1
+                elif val == "J":
+                    cnt_j += 1
+            marcadas = cnt_p + cnt_f + cnt_a + cnt_j
+            asistidas = cnt_p + cnt_a + cnt_j
+            pct = round((asistidas / marcadas) * 100, 1) if marcadas > 0 else 0.0
+            fila.extend([cnt_p, cnt_f, cnt_a, cnt_j, f"{pct}%".replace(".", ",")])
+            writer.writerow(fila)
+
+    elif tipo == "pizarra":
+        encabezado = (
+            ["N°", "Apellidos y Nombres", "Cédula"]
+            + [f.strftime("%d/%m/%Y") for f in fechas_piz]
+            + ["N° Lecciones", "Promedio Pizarra Trimestral"]
+        )
         writer.writerow(encabezado)
 
         for idx, est in enumerate(estudiantes, start=1):
             fila = [idx, est.nombre_completo, est.cedula]
             notas = []
-            for f in fechas:
-                if (est.id, f) in mapa:
-                    n = mapa[(est.id, f)]
+            for f in fechas_piz:
+                if (est.id, f) in mapa_piz:
+                    n = mapa_piz[(est.id, f)]
                     notas.append(n)
                     fila.append(f"{n:.2f}".replace(".", ","))
                 else:
                     fila.append("-")
             prom = round(sum(notas) / len(notas), 2) if notas else 0.0
-            fila.append(f"{prom:.2f}".replace(".", ","))
+            fila.extend([len(notas), f"{prom:.2f}".replace(".", ",") if notas else "-"])
             writer.writerow(fila)
+
     else:
-        fechas = list(
-            RegistroAsistencia.objects.filter(estudiante__curso=curso)
-            .values_list("fecha", flat=True)
-            .distinct()
-            .order_by("fecha")
-        )
-        mapa = {(a.estudiante_id, a.fecha): a.estado for a in RegistroAsistencia.objects.filter(estudiante__curso=curso)}
-        encabezado = ["N°", "Apellidos y Nombres", "Cédula"] + [f.strftime("%d/%m/%Y") for f in fechas] + ["% Asistencia"]
+        # CONSOLIDADO FINAL DEL III TRIMESTRE (ASISTENCIA + PIZARRA)
+        encabezado = [
+            "N°",
+            "Apellidos y Nombres",
+            "Cédula",
+            "Presentes (P)",
+            "Faltas (F)",
+            "Atrasos (A)",
+            "Justificadas (J)",
+            "% Asistencia Trimestral",
+            "N° Pizarras",
+            "Promedio Pizarra Trimestral",
+        ]
         writer.writerow(encabezado)
 
         for idx, est in enumerate(estudiantes, start=1):
-            fila = [idx, est.nombre_completo, est.cedula]
-            marcadas = 0
-            asistidas = 0
-            for f in fechas:
-                val = mapa.get((est.id, f), "-")
-                fila.append(val)
-                if val in ("P", "A", "J", "F"):
-                    marcadas += 1
-                    if val in ("P", "A", "J"):
-                        asistidas += 1
+            cnt_p = cnt_f = cnt_a = cnt_j = 0
+            for f in fechas_asist:
+                val = mapa_asist.get((est.id, f))
+                if val == "P":
+                    cnt_p += 1
+                elif val == "F":
+                    cnt_f += 1
+                elif val == "A":
+                    cnt_a += 1
+                elif val == "J":
+                    cnt_j += 1
+            marcadas = cnt_p + cnt_f + cnt_a + cnt_j
+            asistidas = cnt_p + cnt_a + cnt_j
             pct = round((asistidas / marcadas) * 100, 1) if marcadas > 0 else 0.0
-            fila.append(f"{pct}%".replace(".", ","))
-            writer.writerow(fila)
+
+            notas = [mapa_piz[(est.id, f)] for f in fechas_piz if (est.id, f) in mapa_piz]
+            prom = round(sum(notas) / len(notas), 2) if notas else 0.0
+
+            writer.writerow([
+                idx,
+                est.nombre_completo,
+                est.cedula,
+                cnt_p,
+                cnt_f,
+                cnt_a,
+                cnt_j,
+                f"{pct}%".replace(".", ","),
+                len(notas),
+                f"{prom:.2f}".replace(".", ",") if notas else "-",
+            ])
 
     return response

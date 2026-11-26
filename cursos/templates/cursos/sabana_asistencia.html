@@ -3,146 +3,417 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sábana III Trimestre — Asistencia y Pizarra</title>
+    <title>Sábana III Trimestre — Asistencia y Promedio de Pizarra</title>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; color: #0f172a; margin: 0; padding: 20px; }
-        .header { background: #0f172a; color: #fff; padding: 20px; border-radius: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 1.3rem; }
-        .header p { margin: 4px 0 0; color: #94a3b8; font-size: 0.9rem; }
-        .controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        select { padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; font-weight: 600; background: #fff; color: #0f172a; }
-        .btn { padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        /* BARRA SUPERIOR DE NAVEGACIÓN */
+        .topbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand {
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 7px 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        .nav-links a:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .main {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 18px 30px;
+        }
+
+        /* CABECERA DEL CURSO */
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            padding: 22px 24px;
+            border-radius: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 18px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.16);
+        }
+        .header h1 { margin: 0; font-size: 1.38rem; font-weight: 800; }
+        .header p { margin: 5px 0 0; color: #94a3b8; font-size: 0.9rem; }
+
+        .controles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        select {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 2px solid #38bdf8;
+            font-size: 0.98rem;
+            font-weight: 700;
+            background: #0f172a;
+            color: #fff;
+            cursor: pointer;
+            min-width: 260px;
+        }
+        .btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: filter 0.15s ease;
+        }
+        .btn:hover { filter: brightness(1.06); }
         .btn-green { background: #10b981; color: #fff; }
+        .btn-indigo { background: #4f46e5; color: #fff; }
         .btn-blue { background: #2563eb; color: #fff; }
         .btn-dark { background: #334155; color: #fff; }
-        .card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 25px; }
-        .card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; }
-        .card-head h2 { margin: 0; font-size: 1.15rem; color: #1e293b; }
-        .table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; white-space: nowrap; }
-        th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: center; }
-        th { background: #1e293b; color: #fff; font-weight: 600; }
-        td.nombre { text-align: left; font-weight: 600; position: sticky; left: 0; background: #fff; z-index: 1; }
-        th.nombre { text-align: left; position: sticky; left: 0; z-index: 2; }
-        .est-P { background: #dcfce7; color: #166534; font-weight: 700; }
-        .est-F { background: #fee2e2; color: #991b1b; font-weight: 700; }
-        .est-A { background: #fef3c7; color: #92400e; font-weight: 700; }
-        .est-J { background: #dbeafe; color: #1e40af; font-weight: 700; }
-        .total-col { background: #f8fafc; font-weight: 800; font-size: 0.95rem; color: #0f172a; }
-        .bajo { color: #dc2626; background: #fef2f2; }
+
+        /* TARJETAS RESUMEN DEL TRIMESTRE */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 16px 18px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+        }
+        .kpi-card small {
+            display: block;
+            color: #64748b;
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 4px;
+        }
+        .kpi-card .valor {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .kpi-card .detalle {
+            font-size: 0.82rem;
+            color: #475569;
+            margin-top: 2px;
+        }
+
+        /* SECCIONES DE TABLAS */
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+        }
+        .card-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+        .card-head h2 { margin: 0; font-size: 1.16rem; color: #0f172a; }
+        .leyenda {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+        .leyenda span {
+            padding: 3px 9px;
+            border-radius: 6px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            white-space: nowrap;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        th {
+            background: #1e293b;
+            color: #fff;
+            font-weight: 700;
+        }
+        td.nombre {
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            left: 0;
+            background: #fff;
+            z-index: 1;
+        }
+        th.nombre {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 2;
+        }
+        tr:hover td { background-color: #f8fafc; }
+
+        .est-P { background: #dcfce7 !important; color: #166534; font-weight: 800; }
+        .est-F { background: #fee2e2 !important; color: #991b1b; font-weight: 800; }
+        .est-A { background: #fef3c7 !important; color: #92400e; font-weight: 800; }
+        .est-J { background: #dbeafe !important; color: #1e40af; font-weight: 800; }
+
+        .nota-10 { background: #dcfce7 !important; color: #166534; font-weight: 800; }
+        .nota-8 { background: #dbeafe !important; color: #1e40af; font-weight: 800; }
+        .nota-6 { background: #fef3c7 !important; color: #92400e; font-weight: 800; }
+        .nota-4 { background: #fee2e2 !important; color: #991b1b; font-weight: 800; }
+
+        .resumen-col { background: #f8fafc; font-weight: 700; color: #334155; }
+        .total-col { background: #f1f5f9; font-weight: 800; font-size: 0.96rem; color: #0f172a; }
+        .bajo { color: #dc2626 !important; background: #fef2f2 !important; }
+        .aprobado { color: #15803d !important; background: #f0fdf4 !important; }
+
         @media print {
             @page { size: landscape; margin: 10mm; }
-            body { background: #fff; padding: 0; }
+            body { background: #fff; }
             .no-print { display: none !important; }
-            .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+            .main { margin: 0; padding: 0; max-width: 100%; }
+            .card { box-shadow: none; border: 1px solid #cbd5e1; page-break-inside: avoid; }
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div>
-        <h1>📊 Sábana Horizontal III Trimestre — {% if curso_actual %}{{ curso_actual.nombre }}{% endif %}</h1>
-        <p>U.E. "Dr. Enrique Noboa Arízaga" • Msc. Edwin Lliguipuma E.</p>
-    </div>
-    <div class="controles no-print">
-        <form method="get" style="margin:0;">
-            <select name="curso" onchange="this.form.submit()">
-                {% for c in cursos %}
-                    <option value="{{ c.id }}" {% if curso_actual and c.id == curso_actual.id %}selected{% endif %}>
-                        {{ c.nombre }}
-                    </option>
-                {% endfor %}
-            </select>
-        </form>
-        <button onclick="window.print()" class="btn btn-dark">🖨️ Imprimir Horizontal</button>
-        <a href="/docente/asistencia-offline/" class="btn btn-blue">📱 Volver a App Móvil</a>
+<div class="topbar no-print">
+    <div class="brand">📘 Matemáticas BGU Técnico — Reporte Trimestral</div>
+    <div class="nav-links">
+        <a href="/admin/">🏠 Panel Admin</a>
+        <a href="/docente/">📊 Panel Docente (Notas y Excel)</a>
+        <a href="/docente/asistencia-offline/">📱 App Asistencia y Pizarra</a>
     </div>
 </div>
 
-<!-- TABLA 1: ASISTENCIA HORIZONTAL -->
-<div class="card">
-    <div class="card-head">
-        <h2>📋 Registro Horizontal de Asistencia ({{ fechas_asistencia|length }} sesiones registradas)</h2>
-        {% if curso_actual %}
-        <a href="{% url 'exportar_sabana_csv' %}?curso={{ curso_actual.id }}&tipo=asistencia" class="btn btn-green no-print">
-            📥 Descargar Excel Asistencia (.csv)
-        </a>
-        {% endif %}
-    </div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>N°</th>
-                    <th class="nombre">Apellidos y Nombres</th>
-                    {% for f in fechas_asistencia %}
-                        <th>{{ f|date:"d/m" }}</th>
+<div class="main">
+    <div class="header">
+        <div>
+            <h1>📊 Control Trimestral — {% if curso_actual %}{{ curso_actual.nombre }}{% endif %}</h1>
+            <p>U.E. "Dr. Enrique Noboa Arízaga" • III Trimestre • Msc. Edwin Lliguipuma E.</p>
+        </div>
+        <div class="controles no-print">
+            <form method="get" style="margin:0;">
+                <select name="curso" onchange="this.form.submit()">
+                    {% for c in cursos %}
+                        <option value="{{ c.id }}" {% if curso_actual and c.id == curso_actual.id %}selected{% endif %}>
+                            {{ c.nombre }}
+                        </option>
                     {% endfor %}
-                    <th>% Asistencia</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for fila in filas_asistencia %}
-                <tr>
-                    <td>{{ fila.num }}</td>
-                    <td class="nombre">{{ fila.estudiante.nombre_completo }}</td>
-                    {% for c in fila.celdas %}
-                        <td class="est-{{ c }}">{{ c }}</td>
-                    {% endfor %}
-                    <td class="total-col {% if fila.porcentaje < 85 %}bajo{% endif %}">{{ fila.porcentaje }}%</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4">No hay registros de asistencia en este curso todavía.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </select>
+            </form>
+            {% if curso_actual %}
+            <a href="{% url 'exportar_sabana_csv' %}?curso={{ curso_actual.id }}&tipo=consolidado" class="btn btn-indigo">
+                📑 Excel Consolidado Trimestre
+            </a>
+            {% endif %}
+            <button onclick="window.print()" class="btn btn-dark">🖨️ Imprimir</button>
+            <a href="/docente/asistencia-offline/" class="btn btn-blue">📱 Tomar Lista</a>
+        </div>
     </div>
-</div>
 
-<!-- TABLA 2: NOTAS DE PIZARRA HORIZONTAL -->
-<div class="card">
-    <div class="card-head">
-        <h2>✏️ Registro Horizontal de Lecciones / Pizarra ({{ fechas_pizarra|length }} fechas registradas)</h2>
-        {% if curso_actual %}
-        <a href="{% url 'exportar_sabana_csv' %}?curso={{ curso_actual.id }}&tipo=pizarra" class="btn btn-green no-print">
-            📥 Descargar Excel Pizarra (.csv)
-        </a>
-        {% endif %}
+    <!-- TARJETAS DE RESUMEN AUTOMÁTICO -->
+    <div class="kpi-grid no-print">
+        <div class="kpi-card">
+            <small>Estudiantes en Curso</small>
+            <div class="valor">{{ filas_asistencia|length }}</div>
+            <div class="detalle">Nómina ordenada alfabéticamente</div>
+        </div>
+        <div class="kpi-card">
+            <small>Sesiones de Asistencia</small>
+            <div class="valor">{{ fechas_asistencia|length }}</div>
+            <div class="detalle">Promedio curso: <strong>{{ promedio_general_asistencia }}%</strong></div>
+        </div>
+        <div class="kpi-card">
+            <small>Fechas de Pizarra</small>
+            <div class="valor">{{ fechas_pizarra|length }}</div>
+            <div class="detalle">Promedio curso: <strong>{{ promedio_general_pizarra }} / 10</strong></div>
+        </div>
     </div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>N°</th>
-                    <th class="nombre">Apellidos y Nombres</th>
-                    {% for f in fechas_pizarra %}
-                        <th>{{ f|date:"d/m" }}</th>
-                    {% endfor %}
-                    <th>Promedio</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for fila in filas_pizarra %}
-                <tr>
-                    <td>{{ fila.num }}</td>
-                    <td class="nombre">{{ fila.estudiante.nombre_completo }}</td>
-                    {% for c in fila.celdas %}
-                        <td>
-                            {% if c %}
-                                <strong>{{ c.nota }}</strong> <small style="color:#64748b;">({{ c.cuali }})</small>
-                            {% else %}
-                                -
-                            {% endif %}
+
+    <!-- TABLA 1: ASISTENCIA EN COLUMNAS + % TRIMESTRAL -->
+    <div class="card">
+        <div class="card-head">
+            <div>
+                <h2>📋 1. Asistencia por Fechas y Porcentaje Trimestral</h2>
+                <div class="leyenda">
+                    <span class="est-P">P = Presente</span>
+                    <span class="est-F">F = Falta</span>
+                    <span class="est-A">A = Atraso</span>
+                    <span class="est-J">J = Justificado</span>
+                    <span style="background:#f1f5f9; color:#475569;">% Asistencia = (P + A + J) / Total Clases</span>
+                </div>
+            </div>
+            {% if curso_actual %}
+            <a href="{% url 'exportar_sabana_csv' %}?curso={{ curso_actual.id }}&tipo=asistencia" class="btn btn-green no-print">
+                📥 Excel Asistencia (.csv)
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th class="nombre">Apellidos y Nombres</th>
+                        {% for f in fechas_asistencia %}
+                            <th>{{ f|date:"d/m" }}</th>
+                        {% endfor %}
+                        <th>P</th>
+                        <th>F</th>
+                        <th>A</th>
+                        <th>J</th>
+                        <th>% Asistencia Trimestral</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas_asistencia %}
+                    <tr>
+                        <td>{{ fila.num }}</td>
+                        <td class="nombre">{{ fila.estudiante.nombre_completo }}</td>
+                        {% for c in fila.celdas %}
+                            <td class="est-{{ c }}">{{ c }}</td>
+                        {% endfor %}
+                        <td class="resumen-col">{{ fila.cnt_p }}</td>
+                        <td class="resumen-col">{{ fila.cnt_f }}</td>
+                        <td class="resumen-col">{{ fila.cnt_a }}</td>
+                        <td class="resumen-col">{{ fila.cnt_j }}</td>
+                        <td class="total-col {% if fila.marcadas > 0 and fila.porcentaje < 85 %}bajo{% elif fila.marcadas > 0 %}aprobado{% endif %}">
+                            {{ fila.porcentaje }}%
                         </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="padding:20px; color:#64748b;">
+                            No hay registros de asistencia sincronizados en este curso todavía.
+                        </td>
+                    </tr>
                     {% endfor %}
-                    <td class="total-col">{{ fila.promedio }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4">No hay notas de pizarra registradas en este curso todavía.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TABLA 2: LECCIONES / PIZARRA EN COLUMNAS + PROMEDIO TRIMESTRAL -->
+    <div class="card">
+        <div class="card-head">
+            <div>
+                <h2>✏️ 2. Calificaciones de Pizarra y Promedio Trimestral</h2>
+                <div class="leyenda">
+                    <span class="nota-10">10 = Excelente</span>
+                    <span class="nota-8">8 = Bueno</span>
+                    <span class="nota-6">6 = Regular</span>
+                    <span class="nota-4">4 = Bajo</span>
+                </div>
+            </div>
+            {% if curso_actual %}
+            <a href="{% url 'exportar_sabana_csv' %}?curso={{ curso_actual.id }}&tipo=pizarra" class="btn btn-green no-print">
+                📥 Excel Pizarra (.csv)
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th class="nombre">Apellidos y Nombres</th>
+                        {% for f in fechas_pizarra %}
+                            <th>{{ f|date:"d/m" }}</th>
+                        {% endfor %}
+                        <th>N° Notas</th>
+                        <th>Promedio Pizarra</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas_pizarra %}
+                    <tr>
+                        <td>{{ fila.num }}</td>
+                        <td class="nombre">{{ fila.estudiante.nombre_completo }}</td>
+                        {% for c in fila.celdas %}
+                            <td class="{% if c %}nota-{{ c }}{% endif %}">
+                                {% if c %}{{ c }}{% else %}-{% endif %}
+                            </td>
+                        {% endfor %}
+                        <td class="resumen-col">{{ fila.cantidad_notas }}</td>
+                        <td class="total-col {% if fila.tiene_notas and fila.promedio_num < 7 %}bajo{% elif fila.tiene_notas %}aprobado{% endif %}">
+                            {{ fila.promedio }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="padding:20px; color:#64748b;">
+                            No hay notas de pizarra registradas en este curso todavía.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
