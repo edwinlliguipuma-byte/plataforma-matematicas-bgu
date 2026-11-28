@@ -1,6 +1,7 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
+from .migracion_modulos import migrar_evaluaciones_sin_sobrescribir
 from .models import (
     MuestraSelloFirma,
     CursoBGU,
@@ -23,7 +24,7 @@ def _render_caja_enlace(ruta_relativa):
         'style="width:320px; max-width:100%; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-family:monospace; font-size:12px;" '
         'onfocus="this.select();" />'
         '<a href="{0}" target="_blank" style="background:#2563eb; color:#fff; padding:6px 12px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:12px;">Abrir vista alumno</a>'
-        '<button type="button" onclick="navigator.clipboard.writeText(window.location.origin + \'{0}\'); this.innerText=\'¡Copiado!\'; setTimeout(()=>this.innerText=\'Copiar link\', 2000);" '
+        '<button type="button" onclick="navigator.clipboard.writeText(window.location.origin + \'{0}\'); this.innerText=\'?Copiado!\'; setTimeout(()=>this.innerText=\'Copiar link\', 2000);" '
         'style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px;">Copiar link</button>'
         "</div>",
         ruta_relativa,
@@ -136,13 +137,6 @@ class EntregaTareaAdmin(admin.ModelAdmin):
     mostrar_estudiante.short_description = "Estudiante"
 
 
-@admin.register(Evaluacion)
-class EvaluacionAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "curso", "fecha_creacion")
-    list_filter = ("curso",)
-    search_fields = ("titulo",)
-
-
 @admin.register(ResultadoEvaluacion)
 class ResultadoEvaluacionAdmin(admin.ModelAdmin):
     list_display = ("mostrar_estudiante", "evaluacion", "nota_obtenida", "fecha_registro")
@@ -167,21 +161,28 @@ class ModuloInteractivoAdmin(admin.ModelAdmin):
     search_fields = ("titulo", "asignatura")
     readonly_fields = ("enlace_modulo", "evaluacion_vinculada")
 
+    def changelist_view(self, request, extra_context=None):
+        try:
+            migrar_evaluaciones_sin_sobrescribir()
+        except Exception:
+            pass
+        return super().changelist_view(request, extra_context=extra_context)
+
     def tipo_columna_sabana(self, obj):
         tit = (obj.evaluacion_vinculada.titulo if obj.evaluacion_vinculada else obj.titulo or "").upper()
-        if tit.startswith("[EIS]") or tit.startswith("[MÓDULO IA]") or tit.startswith("[MODULO IA]") or "(EIS)" in tit:
-            return "🧬 EIS (Trimestral)"
-        return "📝 Evaluación Online"
+        if tit.startswith("[EIS]") or tit.startswith("[M?DULO IA]") or tit.startswith("[MODULO IA]") or "(EIS)" in tit:
+            return "?? EIS (Trimestral)"
+        return "?? Evaluaci?n Online"
 
-    tipo_columna_sabana.short_description = "Columna en Sábana"
+    tipo_columna_sabana.short_description = "Columna en S?bana"
 
     def enlace_modulo(self, obj):
         if not obj or not obj.pk:
-            return "Guarda primero el módulo."
+            return "Guarda primero el m?dulo."
         ruta = reverse("ver_modulo_interactivo", args=[obj.pk])
         return _render_caja_enlace(ruta)
 
-    enlace_modulo.short_description = "Enlace directo del Módulo Interactivo"
+    enlace_modulo.short_description = "Enlace directo del M?dulo Interactivo"
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
@@ -189,14 +190,21 @@ class ModuloInteractivoAdmin(admin.ModelAdmin):
             tit_actual = (obj.evaluacion_vinculada.titulo or "").strip()
             es_eis = (
                 tit_actual.upper().startswith("[EIS]")
-                or tit_actual.upper().startswith("[MÓDULO IA]")
+                or tit_actual.upper().startswith("[M?DULO IA]")
                 or tit_actual.upper().startswith("[MODULO IA]")
                 or "(EIS)" in tit_actual.upper()
             )
-            prefijo = "[EIS]" if es_eis else "[Evaluación IA]"
+            prefijo = "[EIS]" if es_eis else "[Evaluaci?n IA]"
             obj.evaluacion_vinculada.titulo = f"{prefijo} {obj.titulo}"
             obj.evaluacion_vinculada.curso = obj.curso
             obj.evaluacion_vinculada.save(update_fields=["titulo", "curso"])
+        else:
+            ev = Evaluacion.objects.create(
+                titulo=f"[Evaluaci?n IA] {obj.titulo}",
+                curso=obj.curso,
+            )
+            obj.evaluacion_vinculada = ev
+            obj.save(update_fields=["evaluacion_vinculada"])
 
 
 @admin.register(EsquelaIncumplimiento)

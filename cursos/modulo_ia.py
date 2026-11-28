@@ -19,6 +19,7 @@ from django.db.models import Avg, Q
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
 
+from .migracion_modulos import migrar_evaluaciones_sin_sobrescribir
 from .models import (
     CursoBGU,
     EstudiantePerfil,
@@ -424,6 +425,10 @@ def panel_docente_institucional(request):
 
 @staff_member_required
 def crear_modulo_ia(request):
+    try:
+        migrar_evaluaciones_sin_sobrescribir()
+    except Exception:
+        pass
     cursos = CursoBGU.objects.all().order_by("nombre")
     tareas = Tarea.objects.all().order_by("-id")[:30]
     modulos_recientes = list(ModuloInteractivo.objects.select_related("curso", "evaluacion_vinculada")[:12])
@@ -708,6 +713,26 @@ REGLAS:
 def ver_modulo_interactivo(request, modulo_id):
     modulo = get_object_or_404(ModuloInteractivo, id=modulo_id)
     contenido = json.loads(modulo.contenido_json)
+    if contenido.get("es_migrado_externo"):
+        from django.utils.html import escape
+        inst = escape(contenido.get("instrucciones") or "Revisa las indicaciones y accede al recurso del m?dulo.")
+        enlace = (contenido.get("enlace_externo") or "").strip()
+        btn_ext = (
+            f'<a href="{escape(enlace)}" target="_blank" style="display:inline-block;background:#2563eb;color:#fff;font-weight:800;padding:14px 24px;border-radius:12px;text-decoration:none;margin-right:10px;">?? Abrir Actividad / Evaluaci?n</a>'
+            if enlace else ""
+        )
+        html_migrado = f"""<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{escape(modulo.titulo)}</title></head>
+<body style="margin:0;background:#020617;color:#f8fafc;font-family:system-ui,-apple-system,sans-serif;padding:24px;">
+<div style="max-width:760px;margin:20px auto;background:#0f172a;border:1px solid #1e293b;border-radius:18px;padding:28px;">
+<p style="color:#fbbf24;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin:0 0 8px;">{escape(modulo.institucion)}</p>
+<h1 style="margin:0 0 8px;font-size:24px;">{escape(modulo.titulo)}</h1>
+<p style="color:#94a3b8;font-size:14px;margin:0 0 20px;">Curso: <strong style="color:#e2e8f0;">{escape(modulo.curso.nombre)}</strong></p>
+<div style="background:#020617;border:1px solid #334155;border-radius:12px;padding:16px;white-space:pre-line;line-height:1.6;margin-bottom:22px;font-size:15px;">{inst}</div>
+<div>{btn_ext}<a href="/aula/" style="display:inline-block;background:#1e293b;color:#e2e8f0;font-weight:700;padding:14px 20px;border-radius:12px;text-decoration:none;">? Volver al Aula Virtual</a></div>
+</div></body></html>"""
+        return HttpResponse(html_migrado)
     cedula_inicial = request.GET.get("cedula", "").strip()
     estudiante_inicial = None
     if cedula_inicial:
