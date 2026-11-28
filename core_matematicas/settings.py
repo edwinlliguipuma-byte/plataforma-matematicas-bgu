@@ -98,6 +98,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+WHITENOISE_MAX_AGE = 31536000  # Caché de 1 año en navegador para que las pestañas abran al instante
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
@@ -109,32 +110,55 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- CONFIGURACIÓN VISUAL DE JAZZMIN (DISEÑO MODERNO Y GRANDE) ---
+# --- CONFIGURACIÓN VISUAL DE JAZZMIN (DISEÑO EJECUTIVO PANTALLA COMPLETA) ---
 JAZZMIN_SETTINGS = {
-    "site_title": "Matemáticas BGU Técnico",
-    "site_header": "Matemáticas BGU Técnico",
-    "site_brand": "Matemáticas BGU Técnico",
-    "welcome_sign": "Bienvenido al Sistema Académico • U.E. Dr. Enrique Noboa",
-    "copyright": "Colegio BGU Técnico",
+    "site_title": "U.E. Dr. Enrique Noboa • Msc. Edwin Lliguipuma",
+    "site_header": "U.E. Dr. Enrique Noboa",
+    "site_brand": "U.E. Dr. Enrique Noboa",
+    "welcome_sign": "Plataforma Académica BGU • Creado por Msc. Edwin Lliguipuma — U.E. Dr. Enrique Noboa",
+    "copyright": "Msc. Edwin Lliguipuma • Unidad Educativa Dr. Enrique Noboa",
     "search_model": ["cursos.EstudiantePerfil"],
+    "custom_css": "cursos/css/admin_pro.css",
 
-    # Botones en la barra blanca superior (junto al buscador)
+    # Accesos directos en la barra superior
     "topmenu_links": [
-        {"name": "Inicio", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "📊 Panel Docente (Notas y Excel)", "url": "/docente/", "new_window": False},
-        {"name": "🎓 Aula Virtual Estudiantes", "url": "/aula/", "new_window": True},
+        {"name": "📊 Panel Docente (Notas)", "url": "/docente/", "new_window": False},
+        {"name": "✨ Crear Módulo IA", "url": "/docente/crear-modulo-ia/", "new_window": False},
+        {"name": "📱 Asistencia Offline", "url": "/docente/asistencia-offline/", "new_window": False},
+        {"name": "📋 Sábana Trimestral", "url": "/docente/sabana-asistencia/", "new_window": False},
+        {"name": "🎓 Aula Virtual", "url": "/aula/", "new_window": True},
     ],
 
-    # Enlaces directos en el menú lateral oscuro dentro de "Cursos"
+    # Enlaces directos en el menú lateral dentro de "Cursos"
     "custom_links": {
         "cursos": [
             {
-                "name": "📊 Abrir Panel Docente (Excel)",
+                "name": "📊 Panel Docente (Notas y Excel)",
                 "url": "/docente/",
                 "icon": "fas fa-chart-line",
             },
             {
-                "name": "🎓 Ver Aula Virtual (/aula/)",
+                "name": "✨ Crear Módulo IA (EIS)",
+                "url": "/docente/crear-modulo-ia/",
+                "icon": "fas fa-magic",
+            },
+            {
+                "name": "📱 App Asistencia y Pizarra",
+                "url": "/docente/asistencia-offline/",
+                "icon": "fas fa-mobile-alt",
+            },
+            {
+                "name": "📋 Sábana Asistencia y Pizarra",
+                "url": "/docente/sabana-asistencia/",
+                "icon": "fas fa-table",
+            },
+            {
+                "name": "📨 Centro de Esquelas",
+                "url": "/docente/esquelas/",
+                "icon": "fas fa-envelope-open-text",
+            },
+            {
+                "name": "🎓 Aula Virtual Estudiantes",
                 "url": "/aula/",
                 "icon": "fas fa-graduation-cap",
                 "new_window": True,
@@ -142,7 +166,6 @@ JAZZMIN_SETTINGS = {
         ]
     },
 
-    # Íconos profesionales para cada sección
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
@@ -153,9 +176,45 @@ JAZZMIN_SETTINGS = {
         "cursos.ResultadoEvaluacion": "fas fa-check-circle",
         "cursos.Tarea": "fas fa-file-alt",
         "cursos.EntregaTarea": "fas fa-clipboard-check",
+        "cursos.ModuloInteractivo": "fas fa-robot",
+        "cursos.EsquelaIncumplimiento": "fas fa-file-invoice",
+        "cursos.MuestraSelloFirma": "fas fa-stamp",
+        "cursos.RegistroAsistencia": "fas fa-user-check",
+        "cursos.RegistroPizarra": "fas fa-chalkboard-teacher",
     },
 
     "show_sidebar": True,
     "navigation_expanded": True,
     "changeform_format": "horizontal_tabs",
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-navy",
+    "accent": "accent-primary",
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": True,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": True,
+    "theme": "default",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
 }
