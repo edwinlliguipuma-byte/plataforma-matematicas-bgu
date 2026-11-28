@@ -217,11 +217,16 @@
         .est-F { background: #fee2e2 !important; color: #991b1b; font-weight: 800; }
         .est-A { background: #fef3c7 !important; color: #92400e; font-weight: 800; }
         .est-J { background: #dbeafe !important; color: #1e40af; font-weight: 800; }
+        .est-FG { background: #f3e8ff !important; color: #6b21a8; font-weight: 800; }
 
         .nota-10 { background: #dcfce7 !important; color: #166534; font-weight: 800; }
+        .nota-9 { background: #d1fae5 !important; color: #065f46; font-weight: 800; }
         .nota-8 { background: #dbeafe !important; color: #1e40af; font-weight: 800; }
+        .nota-7 { background: #e0f2fe !important; color: #0369a1; font-weight: 800; }
         .nota-6 { background: #fef3c7 !important; color: #92400e; font-weight: 800; }
+        .nota-5 { background: #ffedd5 !important; color: #9a3412; font-weight: 800; }
         .nota-4 { background: #fee2e2 !important; color: #991b1b; font-weight: 800; }
+        .nota-2 { background: #fee2e2 !important; color: #991b1b; font-weight: 800; }
 
         .resumen-col { background: #f8fafc; font-weight: 700; color: #334155; }
         .total-col { background: #f1f5f9; font-weight: 800; font-size: 0.96rem; color: #0f172a; }
@@ -299,11 +304,11 @@
             <div>
                 <h2>📋 1. Asistencia por Fechas y Porcentaje Trimestral</h2>
                 <div class="leyenda">
-                    <span class="est-P">P = Presente</span>
-                    <span class="est-F">F = Falta</span>
-                    <span class="est-A">A = Atraso</span>
-                    <span class="est-J">J = Justificado</span>
-                    <span style="background:#f1f5f9; color:#475569;">% Asistencia = (P + A + J) / Total Clases</span>
+                    <span class="est-P">P = Presente (1)</span>
+                    <span class="est-J">J = Justificado (0,9)</span>
+                    <span class="est-A">A = Atraso (0,7)</span>
+                    <span class="est-F">F = Falta (0)</span>
+                    <span class="est-FG">FG = Fuga (0)</span>
                 </div>
             </div>
             {% if curso_actual %}
@@ -326,6 +331,7 @@
                         <th>F</th>
                         <th>A</th>
                         <th>J</th>
+                        <th>FG</th>
                         <th>% Asistencia Trimestral</th>
                     </tr>
                 </thead>
@@ -341,13 +347,14 @@
                         <td class="resumen-col">{{ fila.cnt_f }}</td>
                         <td class="resumen-col">{{ fila.cnt_a }}</td>
                         <td class="resumen-col">{{ fila.cnt_j }}</td>
+                        <td class="resumen-col">{{ fila.cnt_fg|default:"0" }}</td>
                         <td class="total-col {% if fila.marcadas > 0 and fila.porcentaje < 85 %}bajo{% elif fila.marcadas > 0 %}aprobado{% endif %}">
                             {{ fila.porcentaje }}%
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" style="padding:20px; color:#64748b;">
+                        <td colspan="8" style="padding:20px; color:#64748b;">
                             No hay registros de asistencia sincronizados en este curso todavía.
                         </td>
                     </tr>
@@ -363,10 +370,13 @@
             <div>
                 <h2>✏️ 2. Calificaciones de Pizarra y Promedio Trimestral</h2>
                 <div class="leyenda">
-                    <span class="nota-10">10 = Excelente</span>
-                    <span class="nota-8">8 = Bueno</span>
-                    <span class="nota-6">6 = Regular</span>
-                    <span class="nota-4">4 = Bajo</span>
+                    <span class="nota-10">10</span>
+                    <span class="nota-9">9</span>
+                    <span class="nota-8">8</span>
+                    <span class="nota-7">7</span>
+                    <span class="nota-6">6</span>
+                    <span class="nota-5">5</span>
+                    <span class="nota-2">2</span>
                 </div>
             </div>
             {% if curso_actual %}

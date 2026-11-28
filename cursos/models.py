@@ -289,6 +289,7 @@ class RegistroAsistencia(models.Model):
         ("F", "Falta"),
         ("A", "Atraso"),
         ("J", "Justificado"),
+        ("FG", "Fuga"),
     ]
     estudiante = models.ForeignKey(
         EstudiantePerfil, on_delete=models.CASCADE, related_name="asistencias"
@@ -308,6 +309,13 @@ class RegistroAsistencia(models.Model):
 
 class RegistroPizarra(models.Model):
     CALIFICACIONES_CUALI = [
+        ("10", "10 - Sobresaliente"),
+        ("9", "9 - Muy Buena"),
+        ("8", "8 - Buena"),
+        ("7", "7 - Alcanza"),
+        ("6", "6 - Regular"),
+        ("5", "5 - Insuficiente"),
+        ("2", "2 - Mínima"),
         ("EP", "Excelente Participación"),
         ("BP", "Buena Participación"),
         ("DP", "Débil Participación"),
@@ -317,7 +325,7 @@ class RegistroPizarra(models.Model):
         EstudiantePerfil, on_delete=models.CASCADE, related_name="pizarras"
     )
     fecha = models.DateField(verbose_name="Fecha de Sesión")
-    codigo_cuali = models.CharField(max_length=2, choices=CALIFICACIONES_CUALI)
+    codigo_cuali = models.CharField(max_length=10, choices=CALIFICACIONES_CUALI)
     nota_cuanti = models.DecimalField(max_digits=4, decimal_places=2)
     actualizado_en = models.DateTimeField(auto_now=True)
 

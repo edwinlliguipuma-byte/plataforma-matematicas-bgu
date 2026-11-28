@@ -15,7 +15,7 @@
             padding: 14px;
             min-height: 100vh;
         }
-        .container { max-width: 1120px; margin: 0 auto; }
+        .container { max-width: 1180px; margin: 0 auto; }
 
         .top-card {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -145,17 +145,17 @@
             justify-content: space-between;
             align-items: center;
             gap: 10px;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: #fbbf24;
             font-weight: 700;
         }
-        .chips-escala { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chips-escala { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
         .chip-e {
             background: #1e293b;
             border: 1px solid #334155;
-            padding: 4px 14px;
+            padding: 4px 11px;
             border-radius: 8px;
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             font-weight: 800;
         }
 
@@ -306,11 +306,11 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 8px;
             margin-bottom: 12px;
         }
-        @media (max-width: 640px) {
+        @media (max-width: 720px) {
             .stats-grid { grid-template-columns: repeat(3, 1fr); }
         }
         .stat-box {
@@ -325,6 +325,7 @@
         .st-f { background: #fee2e2; color: #991b1b; }
         .st-a { background: #fef3c7; color: #92400e; }
         .st-j { background: #dbeafe; color: #1e40af; }
+        .st-fg { background: #f3e8ff; color: #6b21a8; }
         .st-s { background: #f1f5f9; color: #475569; }
 
         .acciones-masivas {
@@ -368,8 +369,9 @@
         .estudiante-item.marcado-F { border-left-color: #dc2626; }
         .estudiante-item.marcado-A { border-left-color: #d97706; }
         .estudiante-item.marcado-J { border-left-color: #2563eb; }
+        .estudiante-item.marcado-FG { border-left-color: #9333ea; }
 
-        .est-info { flex: 1 1 250px; }
+        .est-info { flex: 1 1 240px; }
         .est-num {
             display: inline-block;
             background: #e2e8f0;
@@ -385,12 +387,13 @@
         .controles-est {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
         }
         .grupo-botones {
             display: flex;
-            gap: 4px;
+            flex-wrap: wrap;
+            gap: 3px;
             background: #f8fafc;
             padding: 4px;
             border-radius: 10px;
@@ -399,10 +402,10 @@
         .btn-opt {
             border: none;
             background: transparent;
-            padding: 7px 11px;
+            padding: 7px 10px;
             border-radius: 8px;
             font-weight: 800;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             cursor: pointer;
             color: #475569;
             transition: background 0.1s ease, color 0.1s ease;
@@ -411,11 +414,15 @@
         .btn-opt.active-F { background: #dc2626; color: #fff; }
         .btn-opt.active-A { background: #d97706; color: #fff; }
         .btn-opt.active-J { background: #2563eb; color: #fff; }
+        .btn-opt.active-FG { background: #9333ea; color: #fff; }
 
         .btn-opt.active-10 { background: #059669; color: #fff; }
+        .btn-opt.active-9 { background: #10b981; color: #fff; }
         .btn-opt.active-8 { background: #2563eb; color: #fff; }
+        .btn-opt.active-7 { background: #0284c7; color: #fff; }
         .btn-opt.active-6 { background: #d97706; color: #fff; }
-        .btn-opt.active-4 { background: #dc2626; color: #fff; }
+        .btn-opt.active-5 { background: #ea580c; color: #fff; }
+        .btn-opt.active-2 { background: #dc2626; color: #fff; }
 
         .toast {
             position: fixed;
@@ -469,12 +476,16 @@
         </div>
 
         <div class="escala-box">
-            <span>✏️ Calificación Lección / Pizarra:</span>
+            <span>📋 Asistencia: P (1) • J (0,9) • A (0,7) • F (0) • FG Fuga (0)</span>
             <div class="chips-escala">
+                <span>✏️ Pizarra:</span>
                 <span class="chip-e" style="color:#34d399;">10</span>
+                <span class="chip-e" style="color:#6ee7b7;">9</span>
                 <span class="chip-e" style="color:#60a5fa;">8</span>
+                <span class="chip-e" style="color:#38bdf8;">7</span>
                 <span class="chip-e" style="color:#fbbf24;">6</span>
-                <span class="chip-e" style="color:#f87171;">4</span>
+                <span class="chip-e" style="color:#fb923c;">5</span>
+                <span class="chip-e" style="color:#f87171;">2</span>
             </div>
         </div>
     </div>
@@ -510,6 +521,7 @@
             <div class="stat-box st-f"><small>FALTAS</small><span id="cntF">0</span></div>
             <div class="stat-box st-a"><small>ATRASOS</small><span id="cntA">0</span></div>
             <div class="stat-box st-j"><small>JUSTIF.</small><span id="cntJ">0</span></div>
+            <div class="stat-box st-fg"><small>FUGAS</small><span id="cntFG">0</span></div>
             <div class="stat-box st-s"><small>SIN MAR.</small><span id="cntS">0</span></div>
         </div>
         <div class="acciones-masivas">
@@ -528,7 +540,9 @@
 <script>
 const CURSOS = {{ cursos_json|safe }};
 const STORAGE_KEY = 'bgu_asistencia_pizarra_v4';
-const NOTAS_PIZARRA = [10, 8, 6, 4];
+const ESTADOS_ASISTENCIA = ['P', 'F', 'A', 'J', 'FG'];
+const PESOS_ASISTENCIA = { P: 1.0, J: 0.9, A: 0.7, F: 0.0, FG: 0.0 };
+const NOTAS_PIZARRA = [10, 9, 8, 7, 6, 5, 2];
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DIAS_HABILES = [
@@ -539,16 +553,6 @@ const DIAS_HABILES = [
     { num: 5, label: 'Vie' }
 ];
 
-// Horario oficial configurado por curso:
-// 2do Cont A: Lunes (1) y Martes (2)
-// 2do Cont B: Jueves (4) y Viernes (5)
-// 2do Inf A:  Martes (2) y Miércoles (3)
-// 2do Inf B:  Lunes (1) y Miércoles (3)
-// 3ro Cont A: Martes (2)
-// 3ro Cont B: Lunes (1)
-// 3ro Inf A:  Jueves (4)
-// 3ro Inf B:  Viernes (5)
-// 3ro Inf C:  Jueves (4)
 function diasPredefinidosPorNombre(nombreCurso) {
     const norm = (nombreCurso || '')
         .toUpperCase()
@@ -565,16 +569,16 @@ function diasPredefinidosPorNombre(nombreCurso) {
     else if (/['"\s]B(?:['"\s]|$)/.test(norm)) paralelo = 'B';
     else if (/['"\s]C(?:['"\s]|$)/.test(norm)) paralelo = 'C';
 
-    if (es2do && esCont && paralelo === 'A') return [1, 2]; // Lunes y Martes
-    if (es2do && esCont && paralelo === 'B') return [4, 5]; // Jueves y Viernes
-    if (es2do && esInf && paralelo === 'A')  return [2, 3]; // Martes y Miércoles
-    if (es2do && esInf && paralelo === 'B')  return [1, 3]; // Lunes y Miércoles
+    if (es2do && esCont && paralelo === 'A') return [1, 2];
+    if (es2do && esCont && paralelo === 'B') return [4, 5];
+    if (es2do && esInf && paralelo === 'A')  return [2, 3];
+    if (es2do && esInf && paralelo === 'B')  return [1, 3];
 
-    if (es3ro && esCont && paralelo === 'A') return [2];    // Martes
-    if (es3ro && esCont && paralelo === 'B') return [1];    // Lunes
-    if (es3ro && esInf && paralelo === 'A')  return [4];    // Jueves
-    if (es3ro && esInf && paralelo === 'B')  return [5];    // Viernes
-    if (es3ro && esInf && paralelo === 'C')  return [4];    // Jueves
+    if (es3ro && esCont && paralelo === 'A') return [2];
+    if (es3ro && esCont && paralelo === 'B') return [1];
+    if (es3ro && esInf && paralelo === 'A')  return [4];
+    if (es3ro && esInf && paralelo === 'B')  return [5];
+    if (es3ro && esInf && paralelo === 'C')  return [4];
 
     return [1, 2];
 }
@@ -592,7 +596,6 @@ function parsearISO(iso) {
 }
 
 function generarFechasPorDias(diasElegidos) {
-    // 14 semanas del III Trimestre a partir del Lunes 23/11/2026
     const inicio = new Date(2026, 10, 23);
     const totalDias = 14 * 7;
     const lista = [];
@@ -621,7 +624,6 @@ function cargarEstado() {
         if (rawV4) {
             estado = Object.assign(estado, JSON.parse(rawV4));
         } else {
-            // Si había marcas previas en v3 o v2, migrarlas automáticamente
             const rawPrev = localStorage.getItem('bgu_asistencia_pizarra_v3') || localStorage.getItem('bgu_asistencia_pizarra_v2');
             if (rawPrev) {
                 const prev = JSON.parse(rawPrev);
@@ -802,7 +804,7 @@ function renderizarFechas() {
 function actualizarContadores() {
     const c = getCursoActual();
     const fecha = getFechaActual();
-    let p = 0, f = 0, a = 0, j = 0, s = 0;
+    let p = 0, f = 0, a = 0, j = 0, fg = 0, s = 0;
 
     c.estudiantes.forEach(e => {
         const val = estado.asistencia[`${c.id}_${fecha}_${e.id}`];
@@ -810,6 +812,7 @@ function actualizarContadores() {
         else if (val === 'F') f++;
         else if (val === 'A') a++;
         else if (val === 'J') j++;
+        else if (val === 'FG') fg++;
         else s++;
     });
 
@@ -817,6 +820,7 @@ function actualizarContadores() {
     document.getElementById('cntF').textContent = f;
     document.getElementById('cntA').textContent = a;
     document.getElementById('cntJ').textContent = j;
+    document.getElementById('cntFG').textContent = fg;
     document.getElementById('cntS').textContent = s;
 }
 
@@ -896,12 +900,12 @@ function renderizarEstudiantes() {
                     <span class="est-nombre">${e.nombre}</span>
                 </div>
                 <div class="controles-est">
-                    <div class="grupo-botones" title="Asistencia">
-                        ${['P', 'F', 'A', 'J'].map(op => `
+                    <div class="grupo-botones" title="Asistencia: P(1), F(0), A(0.7), J(0.9), FG Fuga(0)">
+                        ${ESTADOS_ASISTENCIA.map(op => `
                             <button class="btn-opt ${asist === op ? 'active-' + op : ''}" onclick="setAsistencia(${e.id}, '${op}')">${op}</button>
                         `).join('')}
                     </div>
-                    <div class="grupo-botones" title="Nota de Pizarra (10, 8, 6, 4)">
+                    <div class="grupo-botones" title="Nota de Pizarra (10, 9, 8, 7, 6, 5, 2)">
                         ${NOTAS_PIZARRA.map(nota => `
                             <button class="btn-opt ${Number(piz) === nota ? 'active-' + nota : ''}" onclick="setPizarra(${e.id}, ${nota})">${nota}</button>
                         `).join('')}
@@ -981,20 +985,21 @@ function exportarCSVLocal() {
         c.estudiantes.some(e => estado.asistencia[`${c.id}_${f}_${e.id}`] || estado.pizarra[`${c.id}_${f}_${e.id}`])
     );
     const cols = fechas.length ? fechas : [getFechaActual()];
-    let csv = '\uFEFFN°;Apellidos y Nombres;' + cols.join(';') + ';% Asistencia\n';
+    let csv = '\uFEFFN°;Apellidos y Nombres;' + cols.join(';') + ';% Asistencia;Nota Actuación (/10)\n';
 
     c.estudiantes.forEach((e, i) => {
-        let marc = 0, asist = 0;
+        let marc = 0, puntos = 0;
         const vals = cols.map(f => {
             const v = estado.asistencia[`${c.id}_${f}_${e.id}`] || '-';
-            if (['P', 'A', 'J', 'F'].includes(v)) {
+            if (v in PESOS_ASISTENCIA) {
                 marc++;
-                if (['P', 'A', 'J'].includes(v)) asist++;
+                puntos += PESOS_ASISTENCIA[v];
             }
             return v;
         });
-        const pct = marc ? ((asist / marc) * 100).toFixed(1).replace('.', ',') + '%' : '0,0%';
-        csv += `${i + 1};${e.nombre};${vals.join(';')};${pct}\n`;
+        const pct = marc ? ((puntos / marc) * 100).toFixed(1).replace('.', ',') + '%' : '0,0%';
+        const nota10 = marc ? ((puntos / marc) * 10).toFixed(2).replace('.', ',') : '0,00';
+        csv += `${i + 1};${e.nombre};${vals.join(';')};${pct};${nota10}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

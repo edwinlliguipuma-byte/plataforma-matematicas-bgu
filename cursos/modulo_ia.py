@@ -261,16 +261,24 @@ def panel_docente_institucional(request):
     ):
         prom_evals_online_map[row["estudiante_id"]] = float(row["p"] or 0)
 
-    # Actuación en Clase = Promedio de asistencia sobre 10 ((P + A + J) / total_marcadas * 10)
-    asist_stats = defaultdict(lambda: [0, 0])  # [asistidas, marcadas]
+    # Actuación en Clase = Promedio ponderado sobre 10:
+    # P = 1 (10 pts), J = 0.9 (9 pts), A = 0.7 (7 pts), F = 0 (0 pts), FG/FUGA = 0 (0 pts)
+    PESOS_ASISTENCIA = {
+        "P": 1.0,
+        "J": 0.9,
+        "A": 0.7,
+        "F": 0.0,
+        "FG": 0.0,
+        "FUGA": 0.0,
+    }
+    asist_stats = defaultdict(lambda: [0.0, 0])  # [puntos_acumulados, marcadas]
     for row in RegistroAsistencia.objects.filter(estudiante_id__in=est_ids).values("estudiante_id", "estado"):
         est_code = (row["estado"] or "").strip().upper()
-        if est_code in ("P", "A", "J", "F"):
+        if est_code in PESOS_ASISTENCIA:
             asist_stats[row["estudiante_id"]][1] += 1
-            if est_code in ("P", "A", "J"):
-                asist_stats[row["estudiante_id"]][0] += 1
+            asist_stats[row["estudiante_id"]][0] += PESOS_ASISTENCIA[est_code]
 
-    # Lección / Pizarra = Promedio sincronizado desde la app offline
+    # Lección / Pizarra = Promedio sincronizado desde la app offline (10, 9, 8, 7, 6, 5, 2)
     prom_pizarra_map = {}
     for row in (
         RegistroPizarra.objects.filter(estudiante_id__in=est_ids)
@@ -309,8 +317,8 @@ def panel_docente_institucional(request):
         nota_eis = eis_nota_unica_map.get(est.id, 0.0)
         p_eva = prom_evals_online_map.get(est.id, 0.0)
 
-        asistidas, marcadas = asist_stats[est.id]
-        p_actuacion = round((asistidas / marcadas) * 10.0, 2) if marcadas > 0 else 0.0
+        puntos_asist, marcadas = asist_stats[est.id]
+        p_actuacion = round((puntos_asist / marcadas) * 10.0, 2) if marcadas > 0 else 0.0
         p_pizarra = prom_pizarra_map.get(est.id, 0.0)
 
         notas_activas = [n for n in (p_mat, p_deb, p_tal, p_actuacion, p_pizarra, nota_eis, p_eva) if n > 0]
