@@ -36,7 +36,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Estudiantes en Nómina</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Estudiantes Activos</p>
                     <p class="text-3xl font-black text-white mt-1">{{ total_estudiantes }}</p>
                 </div>
                 <span class="text-3xl bg-slate-800 p-3 rounded-xl">👨‍🎓</span>
@@ -60,14 +60,15 @@
         <!-- BARRA DE FILTROS, BUSCADOR INSTANTÁNEO Y ACCIONES -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-3 flex-1">
-                <form method="GET" class="flex items-center gap-2">
+                <form method="GET" id="formFiltroCurso" class="flex items-center gap-2">
                     <label class="text-sm font-bold text-slate-300">Curso:</label>
-                    <select name="curso_id" onchange="this.form.submit()" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-white min-w-[240px]">
+                    <select name="curso_id" onchange="cambiarCursoPanel(this.form)" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-white min-w-[240px]">
                         <option value="">Todos los Cursos</option>
                         {% for c in cursos %}
                         <option value="{{ c.id }}" {% if curso_id_actual == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
                         {% endfor %}
                     </select>
+                    <span id="estadoCargaCurso" class="hidden text-xs font-bold text-amber-400">⏳ Cargando curso...</span>
                 </form>
 
                 <input
@@ -114,10 +115,15 @@
                         </td>
                     </tr>
                     {% endifchanged %}
-                    <tr class="fila-estudiante hover:bg-slate-800/50 transition-colors" data-busqueda="{{ f.estudiante.cedula }} {{ f.estudiante.nombre_completo|lower }}">
+                    <tr class="fila-estudiante {% if f.retirado %}opacity-60 bg-slate-950/70{% else %}hover:bg-slate-800/50{% endif %} transition-colors" data-busqueda="{{ f.estudiante.cedula }} {{ f.estudiante.nombre_completo|lower }}">
                         <td class="py-3.5 px-4 text-slate-500 font-semibold">{{ forloop.counter }}</td>
                         <td class="py-3.5 px-4 font-mono text-xs text-slate-300">{{ f.estudiante.cedula }}</td>
-                        <td class="py-3.5 px-4 font-bold text-white whitespace-nowrap">{{ f.estudiante.nombre_completo }}</td>
+                        <td class="py-3.5 px-4 font-bold text-white whitespace-nowrap">
+                            {{ f.estudiante.nombre_completo }}
+                            {% if f.retirado %}
+                            <span class="ml-2 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-amber-950 text-amber-300 border border-amber-700">🔒 Retirado</span>
+                            {% endif %}
+                        </td>
                         <td class="py-3.5 px-3 text-center">{{ f.materia }}</td>
                         <td class="py-3.5 px-3 text-center">{{ f.deberes }}</td>
                         <td class="py-3.5 px-3 text-center">{{ f.talleres }}</td>
@@ -126,12 +132,14 @@
                         <td class="py-3.5 px-3 text-center font-semibold text-purple-200">{{ f.eis }}</td>
                         <td class="py-3.5 px-3 text-center font-semibold text-indigo-200">{{ f.evaluaciones }}</td>
                         <td class="py-3.5 px-4 text-center">
-                            <span class="px-3 py-1 rounded-full text-xs font-black {% if f.promedio >= 7 %}bg-emerald-950 text-emerald-300 border border-emerald-600{% else %}bg-red-950 text-red-300 border border-red-600{% endif %}">
+                            <span class="px-3 py-1 rounded-full text-xs font-black {% if f.retirado %}bg-slate-800 text-slate-300 border border-slate-600{% elif f.promedio >= 7 %}bg-emerald-950 text-emerald-300 border border-emerald-600{% else %}bg-red-950 text-red-300 border border-red-600{% endif %}">
                                 {{ f.promedio }}
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                            {% if f.pendientes > 0 %}
+                            {% if f.retirado %}
+                            <span class="text-xs text-amber-400 font-semibold">🔒 Retirado (Estático)</span>
+                            {% elif f.pendientes > 0 %}
                             <a href="{% url 'imprimir_esquela' f.estudiante.id %}" target="_blank" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg inline-block">
                                 📄 Esquela ({{ f.pendientes }})
                             </a>
@@ -152,6 +160,12 @@
     </footer>
 
     <script>
+        function cambiarCursoPanel(form) {
+            const badge = document.getElementById('estadoCargaCurso');
+            if (badge) badge.classList.remove('hidden');
+            form.submit();
+        }
+
         function filtrarEstudiantesTabla() {
             const q = (document.getElementById('filtroRapidoTabla').value || '').trim().toLowerCase();
             const filas = document.querySelectorAll('#tablaNotasDocente tbody tr.fila-estudiante');

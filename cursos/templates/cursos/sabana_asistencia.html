@@ -13,7 +13,6 @@
             margin: 0;
         }
 
-        /* BARRA SUPERIOR DE NAVEGACIÓN */
         .topbar {
             background: #ffffff;
             border-bottom: 1px solid #e2e8f0;
@@ -53,12 +52,11 @@
         }
 
         .main {
-            max-width: 1400px;
+            max-width: 1450px;
             margin: 20px auto;
             padding: 0 18px 30px;
         }
 
-        /* CABECERA DEL CURSO */
         .header {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: #fff;
@@ -111,7 +109,6 @@
         .btn-blue { background: #2563eb; color: #fff; }
         .btn-dark { background: #334155; color: #fff; }
 
-        /* TARJETAS RESUMEN DEL TRIMESTRE */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -145,7 +142,6 @@
             margin-top: 2px;
         }
 
-        /* SECCIONES DE TABLAS */
         .card {
             background: #fff;
             border-radius: 16px;
@@ -212,6 +208,18 @@
             z-index: 2;
         }
         tr:hover td { background-color: #f8fafc; }
+        tr.fila-retirada { opacity: 0.65; background-color: #f8fafc; }
+
+        .tag-retirado {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 5px;
+            margin-left: 6px;
+        }
 
         .est-P { background: #dcfce7 !important; color: #166534; font-weight: 800; }
         .est-F { background: #fee2e2 !important; color: #991b1b; font-weight: 800; }
@@ -245,7 +253,7 @@
 <body>
 
 <div class="topbar no-print">
-    <div class="brand">📘 Matemáticas BGU Técnico — Reporte Trimestral</div>
+    <div class="brand">📘 Matemáticas BGU Técnico — U.E. "Dr. Enrique Noboa" • Msc. Edwin Lliguipuma</div>
     <div class="nav-links">
         <a href="/admin/">🏠 Panel Admin</a>
         <a href="/docente/">📊 Panel Docente (Notas y Excel)</a>
@@ -279,26 +287,24 @@
         </div>
     </div>
 
-    <!-- TARJETAS DE RESUMEN AUTOMÁTICO -->
     <div class="kpi-grid no-print">
         <div class="kpi-card">
-            <small>Estudiantes en Curso</small>
+            <small>Estudiantes en Nómina</small>
             <div class="valor">{{ filas_asistencia|length }}</div>
-            <div class="detalle">Nómina ordenada alfabéticamente</div>
+            <div class="detalle">Ordenados alfabéticamente</div>
         </div>
         <div class="kpi-card">
             <small>Sesiones de Asistencia</small>
             <div class="valor">{{ fechas_asistencia|length }}</div>
-            <div class="detalle">Promedio curso: <strong>{{ promedio_general_asistencia }}%</strong></div>
+            <div class="detalle">Promedio activos: <strong>{{ promedio_general_asistencia }}%</strong></div>
         </div>
         <div class="kpi-card">
             <small>Fechas de Pizarra</small>
             <div class="valor">{{ fechas_pizarra|length }}</div>
-            <div class="detalle">Promedio curso: <strong>{{ promedio_general_pizarra }} / 10</strong></div>
+            <div class="detalle">Promedio activos: <strong>{{ promedio_general_pizarra }} / 10</strong></div>
         </div>
     </div>
 
-    <!-- TABLA 1: ASISTENCIA EN COLUMNAS + % TRIMESTRAL -->
     <div class="card">
         <div class="card-head">
             <div>
@@ -337,9 +343,12 @@
                 </thead>
                 <tbody>
                     {% for fila in filas_asistencia %}
-                    <tr>
+                    <tr class="{% if fila.retirado %}fila-retirada{% endif %}">
                         <td>{{ fila.num }}</td>
-                        <td class="nombre">{{ fila.estudiante.nombre_completo }}</td>
+                        <td class="nombre">
+                            {{ fila.estudiante.nombre_completo }}
+                            {% if fila.retirado %}<span class="tag-retirado">🔒 RETIRADO</span>{% endif %}
+                        </td>
                         {% for c in fila.celdas %}
                             <td class="est-{{ c }}">{{ c }}</td>
                         {% endfor %}
@@ -364,7 +373,6 @@
         </div>
     </div>
 
-    <!-- TABLA 2: LECCIONES / PIZARRA EN COLUMNAS + PROMEDIO TRIMESTRAL -->
     <div class="card">
         <div class="card-head">
             <div>
@@ -401,9 +409,12 @@
                 </thead>
                 <tbody>
                     {% for fila in filas_pizarra %}
-                    <tr>
+                    <tr class="{% if fila.retirado %}fila-retirada{% endif %}">
                         <td>{{ fila.num }}</td>
-                        <td class="nombre">{{ fila.estudiante.nombre_completo }}</td>
+                        <td class="nombre">
+                            {{ fila.estudiante.nombre_completo }}
+                            {% if fila.retirado %}<span class="tag-retirado">🔒 RETIRADO</span>{% endif %}
+                        </td>
                         {% for c in fila.celdas %}
                             <td class="{% if c %}nota-{{ c }}{% endif %}">
                                 {% if c %}{{ c }}{% else %}-{% endif %}

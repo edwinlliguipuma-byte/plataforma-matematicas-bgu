@@ -16,7 +16,6 @@ render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if render_hostname:
     ALLOWED_HOSTS.append(render_hostname)
 
-# Aplicaciones instaladas (Jazzmin debe ir ANTES de 'django.contrib.admin')
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -64,7 +63,8 @@ if os.environ.get('DATABASE_URL'):
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
+            conn_max_age=60,
+            conn_health_checks=True,
             ssl_require=True,
         )
     }
@@ -98,7 +98,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-WHITENOISE_MAX_AGE = 31536000  # Caché de 1 año en navegador para que las pestañas abran al instante
+WHITENOISE_MAX_AGE = 31536000
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
@@ -110,6 +110,10 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Mantener sesión del docente activa durante toda la semana sin cortes
+SESSION_COOKIE_AGE = 604800
+SESSION_SAVE_EVERY_REQUEST = True
+
 # --- CONFIGURACIÓN VISUAL DE JAZZMIN (DISEÑO EJECUTIVO PANTALLA COMPLETA) ---
 JAZZMIN_SETTINGS = {
     "site_title": "U.E. Dr. Enrique Noboa • Msc. Edwin Lliguipuma",
@@ -120,7 +124,6 @@ JAZZMIN_SETTINGS = {
     "search_model": ["cursos.EstudiantePerfil"],
     "custom_css": "cursos/css/admin_pro.css",
 
-    # Accesos directos en la barra superior
     "topmenu_links": [
         {"name": "📊 Panel Docente (Notas)", "url": "/docente/", "new_window": False},
         {"name": "✨ Crear Módulo IA", "url": "/docente/crear-modulo-ia/", "new_window": False},
@@ -129,7 +132,6 @@ JAZZMIN_SETTINGS = {
         {"name": "🎓 Aula Virtual", "url": "/aula/", "new_window": True},
     ],
 
-    # Enlaces directos en el menú lateral dentro de "Cursos"
     "custom_links": {
         "cursos": [
             {

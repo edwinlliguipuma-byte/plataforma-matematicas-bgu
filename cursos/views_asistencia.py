@@ -44,6 +44,7 @@ def app_asistencia_offline(request):
                     "id": e.id,
                     "nombre": e.nombre_completo,
                     "cedula": e.cedula,
+                    "retirado": bool(e.retirado),
                 }
                 for e in estudiantes
             ],
@@ -57,7 +58,7 @@ def app_asistencia_offline(request):
 
 def service_worker_asistencia(request):
     sw_code = """
-const CACHE_NAME = 'asistencia-bgu-v6';
+const CACHE_NAME = 'asistencia-bgu-v7';
 const URLS_TO_CACHE = ['/docente/asistencia-offline/'];
 
 self.addEventListener('install', event => {
@@ -101,6 +102,10 @@ def api_sincronizar_asistencia(request):
         asistencias = data.get("asistencias", [])
         pizarras = data.get("pizarras", [])
 
+        retirados_ids = set(
+            EstudiantePerfil.objects.filter(retirado=True).values_list("id", flat=True)
+        )
+
         total_asist = 0
         total_piz = 0
 
@@ -108,7 +113,7 @@ def api_sincronizar_asistencia(request):
             est_id = item.get("estudiante_id")
             fecha_str = item.get("fecha")
             estado = (item.get("estado") or "").strip().upper()
-            if est_id and fecha_str and estado in PESOS_ASISTENCIA:
+            if est_id and int(est_id) not in retirados_ids and fecha_str and estado in PESOS_ASISTENCIA:
                 fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
                 RegistroAsistencia.objects.update_or_create(
                     estudiante_id=int(est_id),
@@ -121,7 +126,7 @@ def api_sincronizar_asistencia(request):
             est_id = item.get("estudiante_id")
             fecha_str = item.get("fecha")
             nota_raw = item.get("nota_cuanti")
-            if est_id and fecha_str and nota_raw is not None:
+            if est_id and int(est_id) not in retirados_ids and fecha_str and nota_raw is not None:
                 nota_num = float(nota_raw)
                 nota_int = int(round(nota_num))
                 if nota_int in NOTAS_PIZARRA_VALIDAS:
@@ -203,12 +208,13 @@ def sabana_asistencia_pizarra(request):
 
             marcadas = cnt_p + cnt_f + cnt_a + cnt_j + cnt_fg
             porcentaje = round((puntos_asist / marcadas) * 100, 1) if marcadas > 0 else 0.0
-            if marcadas > 0:
+            if marcadas > 0 and not est.retirado:
                 porcentajes_curso.append(porcentaje)
 
             filas_asistencia.append({
                 "num": idx,
                 "estudiante": est,
+                "retirado": bool(est.retirado),
                 "celdas": celdas,
                 "cnt_p": cnt_p,
                 "cnt_f": cnt_f,
@@ -247,12 +253,13 @@ def sabana_asistencia_pizarra(request):
 
             tiene_notas = len(notas) > 0
             promedio = round(sum(notas) / len(notas), 2) if tiene_notas else 0.0
-            if tiene_notas:
+            if tiene_notas and not est.retirado:
                 promedios_curso.append(promedio)
 
             filas_pizarra.append({
                 "num": idx,
                 "estudiante": est,
+                "retirado": bool(est.retirado),
                 "celdas": celdas,
                 "cantidad_notas": len(notas),
                 "tiene_notas": tiene_notas,
@@ -309,14 +316,14 @@ def exportar_sabana_csv(request):
 
     if tipo == "asistencia":
         encabezado = (
-            ["N°", "Apellidos y Nombres", "Cédula"]
+            ["N°", "Apellidos y Nombres", "Cédula", "Estado"]
             + [f.strftime("%d/%m/%Y") for f in fechas_asist]
             + ["P", "F", "A", "J", "FG", "% Asistencia Trimestral", "Nota Actuación (/10)"]
         )
         writer.writerow(encabezado)
 
         for idx, est in enumerate(estudiantes, start=1):
-            fila = [idx, est.nombre_completo, est.cedula]
+            fila = [idx, est.nombre_completo, est.cedula, "RETIRADO" if est.retirado else "ACTIVO"]
             cnt_p = cnt_f = cnt_a = cnt_j = cnt_fg = 0
             puntos_asist = 0.0
             for f in fechas_asist:
@@ -351,14 +358,14 @@ def exportar_sabana_csv(request):
 
     elif tipo == "pizarra":
         encabezado = (
-            ["N°", "Apellidos y Nombres", "Cédula"]
+            ["N°", "Apellidos y Nombres", "Cédula", "Estado"]
             + [f.strftime("%d/%m/%Y") for f in fechas_piz]
             + ["N° Lecciones", "Promedio Pizarra Trimestral"]
         )
         writer.writerow(encabezado)
 
         for idx, est in enumerate(estudiantes, start=1):
-            fila = [idx, est.nombre_completo, est.cedula]
+            fila = [idx, est.nombre_completo, est.cedula, "RETIRADO" if est.retirado else "ACTIVO"]
             notas = []
             for f in fechas_piz:
                 if (est.id, f) in mapa_piz:
@@ -372,11 +379,11 @@ def exportar_sabana_csv(request):
             writer.writerow(fila)
 
     else:
-        # CONSOLIDADO FINAL DEL III TRIMESTRE (ASISTENCIA + PIZARRA)
         encabezado = [
             "N°",
             "Apellidos y Nombres",
             "Cédula",
+            "Estado",
             "Presentes (P)",
             "Faltas (F)",
             "Atrasos (A)",
@@ -418,6 +425,7 @@ def exportar_sabana_csv(request):
                 idx,
                 est.nombre_completo,
                 est.cedula,
+                "RETIRADO" if est.retirado else "ACTIVO",
                 cnt_p,
                 cnt_f,
                 cnt_a,

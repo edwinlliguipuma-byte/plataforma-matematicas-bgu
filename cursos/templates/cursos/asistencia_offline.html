@@ -370,6 +370,11 @@
         .estudiante-item.marcado-A { border-left-color: #d97706; }
         .estudiante-item.marcado-J { border-left-color: #2563eb; }
         .estudiante-item.marcado-FG { border-left-color: #9333ea; }
+        .estudiante-item.es-retirado {
+            background: #f8fafc;
+            opacity: 0.68;
+            border-left-color: #f59e0b;
+        }
 
         .est-info { flex: 1 1 240px; }
         .est-num {
@@ -383,6 +388,17 @@
             margin-right: 6px;
         }
         .est-nombre { font-weight: 700; font-size: 0.96rem; color: #0f172a; }
+        .badge-retirado {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-left: 6px;
+        }
 
         .controles-est {
             display: flex;
@@ -409,6 +425,10 @@
             cursor: pointer;
             color: #475569;
             transition: background 0.1s ease, color 0.1s ease;
+        }
+        .btn-opt:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
         }
         .btn-opt.active-P { background: #16a34a; color: #fff; }
         .btn-opt.active-F { background: #dc2626; color: #fff; }
@@ -689,9 +709,10 @@ function getFechaActual() {
 
 function inicializarSelectCursos() {
     const sel = document.getElementById('selectCurso');
-    sel.innerHTML = CURSOS.map(c =>
-        `<option value="${c.id}" ${c.id === estado.cursoId ? 'selected' : ''}>${c.nombre} (${c.estudiantes.length})</option>`
-    ).join('');
+    sel.innerHTML = CURSOS.map(c => {
+        const activos = c.estudiantes.filter(e => !e.retirado).length;
+        return `<option value="${c.id}" ${c.id === estado.cursoId ? 'selected' : ''}>${c.nombre} (${activos})</option>`;
+    }).join('');
 }
 
 function cambiarCurso(nuevoId) {
@@ -772,6 +793,7 @@ function renderizarFechas() {
     const c = getCursoActual();
     const fechaActiva = getFechaActual();
     const lista = getFechasCurso(c.id);
+    const activos = c.estudiantes.filter(e => !e.retirado);
 
     const dObj = parsearISO(fechaActiva);
     const diaLargo = DIAS_LARGOS[dObj.getDay()];
@@ -788,14 +810,14 @@ function renderizarFechas() {
         const diaC = DIAS_SEMANA[d.getDay()];
         const fCorta = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
         let marcados = 0;
-        c.estudiantes.forEach(e => {
+        activos.forEach(e => {
             if (estado.asistencia[`${c.id}_${iso}_${e.id}`]) marcados++;
         });
-        const esCompleta = marcados > 0 && marcados === c.estudiantes.length;
+        const esCompleta = marcados > 0 && marcados === activos.length;
         return `
             <div class="fecha-pill ${esCompleta ? 'completa' : ''} ${iso === fechaActiva ? 'activa' : ''}" onclick="seleccionarFecha('${iso}')">
                 <span class="dia">${diaC} ${fCorta}</span>
-                <span class="conteo">${marcados}/${c.estudiantes.length}</span>
+                <span class="conteo">${marcados}/${activos.length}</span>
             </div>
         `;
     }).join('');
@@ -807,6 +829,7 @@ function actualizarContadores() {
     let p = 0, f = 0, a = 0, j = 0, fg = 0, s = 0;
 
     c.estudiantes.forEach(e => {
+        if (e.retirado) return;
         const val = estado.asistencia[`${c.id}_${fecha}_${e.id}`];
         if (val === 'P') p++;
         else if (val === 'F') f++;
@@ -826,6 +849,8 @@ function actualizarContadores() {
 
 function setAsistencia(estId, val) {
     const c = getCursoActual();
+    const est = c.estudiantes.find(x => x.id === estId);
+    if (est && est.retirado) return;
     const fecha = getFechaActual();
     const key = `${c.id}_${fecha}_${estId}`;
     if (estado.asistencia[key] === val) {
@@ -841,6 +866,8 @@ function setAsistencia(estId, val) {
 
 function setPizarra(estId, notaNum) {
     const c = getCursoActual();
+    const est = c.estudiantes.find(x => x.id === estId);
+    if (est && est.retirado) return;
     const fecha = getFechaActual();
     const key = `${c.id}_${fecha}_${estId}`;
     if (Number(estado.pizarra[key]) === Number(notaNum)) {
@@ -856,21 +883,25 @@ function marcarTodosPresentes() {
     const c = getCursoActual();
     const fecha = getFechaActual();
     c.estudiantes.forEach(e => {
-        estado.asistencia[`${c.id}_${fecha}_${e.id}`] = 'P';
+        if (!e.retirado) {
+            estado.asistencia[`${c.id}_${fecha}_${e.id}`] = 'P';
+        }
     });
     guardarEstadoLocal();
     renderizarFechas();
     actualizarContadores();
     renderizarEstudiantes();
-    mostrarToast(`Todos marcados Presentes (P) en ${c.nombre}`);
+    mostrarToast(`Todos los activos marcados Presentes (P) en ${c.nombre}`);
 }
 
 function limpiarDiaActual() {
     const c = getCursoActual();
     const fecha = getFechaActual();
     c.estudiantes.forEach(e => {
-        delete estado.asistencia[`${c.id}_${fecha}_${e.id}`];
-        delete estado.pizarra[`${c.id}_${fecha}_${e.id}`];
+        if (!e.retirado) {
+            delete estado.asistencia[`${c.id}_${fecha}_${e.id}`];
+            delete estado.pizarra[`${c.id}_${fecha}_${e.id}`];
+        }
     });
     guardarEstadoLocal();
     renderizarFechas();
@@ -892,22 +923,24 @@ function renderizarEstudiantes() {
         }
         const asist = estado.asistencia[`${c.id}_${fecha}_${e.id}`] || '';
         const piz = estado.pizarra[`${c.id}_${fecha}_${e.id}`] || '';
+        const disAttr = e.retirado ? 'disabled' : '';
 
         return `
-            <div class="estudiante-item ${asist ? 'marcado-' + asist : ''}">
+            <div class="estudiante-item ${e.retirado ? 'es-retirado' : (asist ? 'marcado-' + asist : '')}">
                 <div class="est-info">
                     <span class="est-num">${num}</span>
                     <span class="est-nombre">${e.nombre}</span>
+                    ${e.retirado ? '<span class="badge-retirado">🔒 RETIRADO (ESTÁTICO)</span>' : ''}
                 </div>
                 <div class="controles-est">
                     <div class="grupo-botones" title="Asistencia: P(1), F(0), A(0.7), J(0.9), FG Fuga(0)">
                         ${ESTADOS_ASISTENCIA.map(op => `
-                            <button class="btn-opt ${asist === op ? 'active-' + op : ''}" onclick="setAsistencia(${e.id}, '${op}')">${op}</button>
+                            <button ${disAttr} class="btn-opt ${asist === op ? 'active-' + op : ''}" onclick="setAsistencia(${e.id}, '${op}')">${op}</button>
                         `).join('')}
                     </div>
                     <div class="grupo-botones" title="Nota de Pizarra (10, 9, 8, 7, 6, 5, 2)">
                         ${NOTAS_PIZARRA.map(nota => `
-                            <button class="btn-opt ${Number(piz) === nota ? 'active-' + nota : ''}" onclick="setPizarra(${e.id}, ${nota})">${nota}</button>
+                            <button ${disAttr} class="btn-opt ${Number(piz) === nota ? 'active-' + nota : ''}" onclick="setPizarra(${e.id}, ${nota})">${nota}</button>
                         `).join('')}
                     </div>
                 </div>
@@ -935,25 +968,32 @@ async function sincronizarConServidor() {
         return;
     }
 
+    const retiradosIds = new Set();
+    CURSOS.forEach(c => c.estudiantes.forEach(e => { if (e.retirado) retiradosIds.add(e.id); }));
+
     const asistencias = [];
     const pizarras = [];
 
     Object.entries(estado.asistencia).forEach(([key, val]) => {
         const [, fecha, estId] = key.split('_');
-        asistencias.push({
-            estudiante_id: Number(estId),
-            fecha: fecha,
-            estado: val
-        });
+        if (!retiradosIds.has(Number(estId))) {
+            asistencias.push({
+                estudiante_id: Number(estId),
+                fecha: fecha,
+                estado: val
+            });
+        }
     });
 
     Object.entries(estado.pizarra).forEach(([key, notaVal]) => {
         const [, fecha, estId] = key.split('_');
-        pizarras.push({
-            estudiante_id: Number(estId),
-            fecha: fecha,
-            nota_cuanti: Number(notaVal)
-        });
+        if (!retiradosIds.has(Number(estId))) {
+            pizarras.push({
+                estudiante_id: Number(estId),
+                fecha: fecha,
+                nota_cuanti: Number(notaVal)
+            });
+        }
     });
 
     if (!asistencias.length && !pizarras.length) {
@@ -985,7 +1025,7 @@ function exportarCSVLocal() {
         c.estudiantes.some(e => estado.asistencia[`${c.id}_${f}_${e.id}`] || estado.pizarra[`${c.id}_${f}_${e.id}`])
     );
     const cols = fechas.length ? fechas : [getFechaActual()];
-    let csv = '\uFEFFN°;Apellidos y Nombres;' + cols.join(';') + ';% Asistencia;Nota Actuación (/10)\n';
+    let csv = '\uFEFFN°;Apellidos y Nombres;Estado;' + cols.join(';') + ';% Asistencia;Nota Actuación (/10)\n';
 
     c.estudiantes.forEach((e, i) => {
         let marc = 0, puntos = 0;
@@ -999,7 +1039,7 @@ function exportarCSVLocal() {
         });
         const pct = marc ? ((puntos / marc) * 100).toFixed(1).replace('.', ',') + '%' : '0,0%';
         const nota10 = marc ? ((puntos / marc) * 10).toFixed(2).replace('.', ',') : '0,00';
-        csv += `${i + 1};${e.nombre};${vals.join(';')};${pct};${nota10}\n`;
+        csv += `${i + 1};${e.nombre};${e.retirado ? 'RETIRADO' : 'ACTIVO'};${vals.join(';')};${pct};${nota10}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

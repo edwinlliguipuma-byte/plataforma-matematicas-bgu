@@ -130,9 +130,10 @@ class CursoBGUAdmin(admin.ModelAdmin):
 
 @admin.register(EstudiantePerfil)
 class EstudiantePerfilAdmin(admin.ModelAdmin):
-    list_display = ("mostrar_nombre", "cedula", "curso", "telefono_representante")
+    list_display = ("mostrar_nombre", "cedula", "curso", "retirado", "telefono_representante")
+    list_editable = ("retirado",)
     list_select_related = ("user", "curso")
-    list_per_page = 35
+    list_per_page = 40
     show_full_result_count = False
     search_fields = (
         "apellidos_nombres",
@@ -141,7 +142,7 @@ class EstudiantePerfilAdmin(admin.ModelAdmin):
         "user__last_name",
         "user__username",
     )
-    list_filter = ("curso",)
+    list_filter = ("curso", "retirado")
     ordering = ("curso__nombre", "apellidos_nombres", "user__last_name")
 
     def mostrar_nombre(self, obj):

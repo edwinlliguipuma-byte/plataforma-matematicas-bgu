@@ -95,6 +95,9 @@ class EstudiantePerfil(models.Model):
     correo_representante = models.EmailField(
         blank=True, null=True, verbose_name="Correo del Representante"
     )
+    retirado = models.BooleanField(
+        default=False, verbose_name="Retirado (Estático)"
+    )
 
     class Meta:
         verbose_name = "Estudiante"
@@ -112,7 +115,8 @@ class EstudiantePerfil(models.Model):
         return f"Estudiante {self.cedula}"
 
     def __str__(self):
-        return f"{self.nombre_completo} ({self.cedula})"
+        estado = " [RETIRADO]" if self.retirado else ""
+        return f"{self.nombre_completo} ({self.cedula}){estado}"
 
 
 class Tarea(models.Model):

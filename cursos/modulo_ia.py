@@ -223,7 +223,7 @@ def panel_docente_institucional(request):
     exportar = request.GET.get("exportar", "")
 
     estudiantes_qs = EstudiantePerfil.objects.select_related("curso", "user").order_by(
-        "curso__nombre", "user__last_name", "apellidos_nombres"
+        "curso__nombre", "apellidos_nombres", "user__last_name"
     )
     if curso_id:
         estudiantes_qs = estudiantes_qs.filter(curso_id=curso_id)
@@ -239,7 +239,6 @@ def panel_docente_institucional(request):
     ):
         prom_entregas[row["estudiante_id"]][row["tarea__tipo_tarea"]] = float(row["p"] or 0)
 
-    # EIS = Nota única creada desde "Crear Módulo IA" ([Módulo IA] ...)
     eis_nota_unica_map = {}
     for row in (
         ResultadoEvaluacion.objects.filter(
@@ -251,7 +250,6 @@ def panel_docente_institucional(request):
     ):
         eis_nota_unica_map[row["estudiante_id"]] = float(row["nota_obtenida"] or 0)
 
-    # Evaluación Online = Evaluaciones creadas manualmente en "Módulos de Clase y Lecciones"
     prom_evals_online_map = {}
     for row in (
         ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
@@ -261,8 +259,6 @@ def panel_docente_institucional(request):
     ):
         prom_evals_online_map[row["estudiante_id"]] = float(row["p"] or 0)
 
-    # Actuación en Clase = Promedio ponderado sobre 10:
-    # P = 1 (10 pts), J = 0.9 (9 pts), A = 0.7 (7 pts), F = 0 (0 pts), FG/FUGA = 0 (0 pts)
     PESOS_ASISTENCIA = {
         "P": 1.0,
         "J": 0.9,
@@ -271,14 +267,13 @@ def panel_docente_institucional(request):
         "FG": 0.0,
         "FUGA": 0.0,
     }
-    asist_stats = defaultdict(lambda: [0.0, 0])  # [puntos_acumulados, marcadas]
+    asist_stats = defaultdict(lambda: [0.0, 0])
     for row in RegistroAsistencia.objects.filter(estudiante_id__in=est_ids).values("estudiante_id", "estado"):
         est_code = (row["estado"] or "").strip().upper()
         if est_code in PESOS_ASISTENCIA:
             asist_stats[row["estudiante_id"]][1] += 1
             asist_stats[row["estudiante_id"]][0] += PESOS_ASISTENCIA[est_code]
 
-    # Lección / Pizarra = Promedio sincronizado desde la app offline (10, 9, 8, 7, 6, 5, 2)
     prom_pizarra_map = {}
     for row in (
         RegistroPizarra.objects.filter(estudiante_id__in=est_ids)
@@ -309,8 +304,13 @@ def panel_docente_institucional(request):
 
     filas = []
     total_con_pendientes = 0
+    total_activos = 0
 
     for est in estudiantes:
+        es_retirado = bool(est.retirado)
+        if not es_retirado:
+            total_activos += 1
+
         p_mat = prom_entregas[est.id].get("MATERIA", 0.0)
         p_deb = prom_entregas[est.id].get("DEBER", 0.0)
         p_tal = prom_entregas[est.id].get("TALLER", 0.0)
@@ -324,17 +324,21 @@ def panel_docente_institucional(request):
         notas_activas = [n for n in (p_mat, p_deb, p_tal, p_actuacion, p_pizarra, nota_eis, p_eva) if n > 0]
         promedio_final = round(sum(notas_activas) / len(notas_activas), 2) if notas_activas else 0.0
 
-        tot_t = tareas_por_curso.get(est.curso_id, 0)
-        ok_t = len(tareas_ok_por_est.get(est.id, set()))
-        tot_e = evals_por_curso.get(est.curso_id, 0)
-        ok_e = len(evals_ok_por_est.get(est.id, set()))
-        pendientes = max(0, (tot_t - ok_t) + (tot_e - ok_e))
-        if pendientes > 0:
-            total_con_pendientes += 1
+        if es_retirado:
+            pendientes = 0
+        else:
+            tot_t = tareas_por_curso.get(est.curso_id, 0)
+            ok_t = len(tareas_ok_por_est.get(est.id, set()))
+            tot_e = evals_por_curso.get(est.curso_id, 0)
+            ok_e = len(evals_ok_por_est.get(est.id, set()))
+            pendientes = max(0, (tot_t - ok_t) + (tot_e - ok_e))
+            if pendientes > 0:
+                total_con_pendientes += 1
 
         filas.append(
             {
                 "estudiante": est,
+                "retirado": es_retirado,
                 "materia": round(p_mat, 2),
                 "deberes": round(p_deb, 2),
                 "talleres": round(p_tal, 2),
@@ -357,6 +361,7 @@ def panel_docente_institucional(request):
                 "Cédula",
                 "Apellidos y Nombres",
                 "Curso",
+                "Estado",
                 "Materia",
                 "Deberes",
                 "Talleres",
@@ -374,6 +379,7 @@ def panel_docente_institucional(request):
                     f["estudiante"].cedula,
                     f["estudiante"].nombre_completo,
                     f["estudiante"].curso.nombre,
+                    "RETIRADO" if f["retirado"] else "ACTIVO",
                     f["materia"],
                     f["deberes"],
                     f["talleres"],
@@ -382,7 +388,7 @@ def panel_docente_institucional(request):
                     f["eis"],
                     f["evaluaciones"],
                     f["promedio"],
-                    f["pendientes"],
+                    "RETIRADO" if f["retirado"] else f["pendientes"],
                 ]
             )
         return response
@@ -399,7 +405,7 @@ def panel_docente_institucional(request):
             "cursos": cursos,
             "curso_id_actual": curso_id,
             "filas": filas,
-            "total_estudiantes": len(filas),
+            "total_estudiantes": total_activos,
             "total_modulos": total_modulos,
             "total_con_pendientes": total_con_pendientes,
         },
@@ -467,7 +473,6 @@ def crear_modulo_ia(request):
             curso = get_object_or_404(CursoBGU, id=curso_id)
             destreza_txt = destreza if destreza else "Alineado al currículo vigente del Ministerio de Educación de Ecuador."
 
-            # Petición 1 (en paralelo): Infografía + Tarea Guiada + Deber
             prompt_parte1 = f"""
 Eres docente de Bachillerato en Ecuador (U.E. Técnica "Dr. Enrique Noboa" - La Troncal).
 Genera la guía didáctica sencilla y directa sobre:
@@ -523,7 +528,6 @@ REGLAS:
 CANTIDADES EXACTAS: "anatomia_pasos" (4), "tarjetas_infografia" (5 con colores: "blue", "emerald", "purple", "amber", "rose"), "tarea_guiada" (6), "deber_casa" (10).
 """
 
-            # Petición 2 (en paralelo): Evaluación de 20 preguntas
             prompt_parte2 = f"""
 Eres docente de Bachillerato en Ecuador (U.E. Técnica "Dr. Enrique Noboa" - La Troncal).
 Genera una evaluación de 20 preguntas de opción múltiple claras y didácticas sobre:
@@ -790,8 +794,10 @@ def centro_esquelas(request):
             )
         return redirect(f"{request.path}?curso_id={curso_id}")
 
-    estudiantes_qs = EstudiantePerfil.objects.select_related("curso", "user").order_by(
-        "curso__nombre", "user__last_name", "apellidos_nombres"
+    estudiantes_qs = EstudiantePerfil.objects.select_related("curso", "user").filter(
+        retirado=False
+    ).order_by(
+        "curso__nombre", "apellidos_nombres", "user__last_name"
     )
     if curso_id:
         estudiantes_qs = estudiantes_qs.filter(curso_id=curso_id)
