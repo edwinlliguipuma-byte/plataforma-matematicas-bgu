@@ -7,6 +7,7 @@ from .models import (
     EstudiantePerfil,
     Tarea,
     EntregaTarea,
+    Evaluacion,
     ResultadoEvaluacion,
     ModuloInteractivo,
     EsquelaIncumplimiento,
@@ -135,6 +136,13 @@ class EntregaTareaAdmin(admin.ModelAdmin):
     mostrar_estudiante.short_description = "Estudiante"
 
 
+@admin.register(Evaluacion)
+class EvaluacionAdmin(admin.ModelAdmin):
+    list_display = ("titulo", "curso", "fecha_creacion")
+    list_filter = ("curso",)
+    search_fields = ("titulo",)
+
+
 @admin.register(ResultadoEvaluacion)
 class ResultadoEvaluacionAdmin(admin.ModelAdmin):
     list_display = ("mostrar_estudiante", "evaluacion", "nota_obtenida", "fecha_registro")
@@ -189,18 +197,6 @@ class ModuloInteractivoAdmin(admin.ModelAdmin):
             obj.evaluacion_vinculada.titulo = f"{prefijo} {obj.titulo}"
             obj.evaluacion_vinculada.curso = obj.curso
             obj.evaluacion_vinculada.save(update_fields=["titulo", "curso"])
-
-    def delete_model(self, request, obj):
-        ev = obj.evaluacion_vinculada
-        super().delete_model(request, obj)
-        if ev:
-            ev.delete()
-
-    def delete_queryset(self, request, queryset):
-        evals = [m.evaluacion_vinculada for m in queryset if m.evaluacion_vinculada]
-        super().delete_queryset(request, queryset)
-        for ev in evals:
-            ev.delete()
 
 
 @admin.register(EsquelaIncumplimiento)
