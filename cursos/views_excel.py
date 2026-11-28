@@ -1,6 +1,8 @@
 ﻿import io
 import unicodedata
 import openpyxl
+from openpyxl.workbook.protection import WorkbookProtection
+from openpyxl.worksheet.protection import SheetProtection
 from django.apps import apps
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
@@ -175,6 +177,11 @@ def exportar_plantilla_xlsm(request):
 
     wb = openpyxl.load_workbook(archivo, keep_vba=es_xlsm)
 
+    # Desproteger la estructura del libro y TODAS las hojas automáticamente
+    wb.security = WorkbookProtection()
+    for hoja in wb.worksheets:
+        hoja.protection = SheetProtection(sheet=False)
+
     if hoja_objetivo in wb.sheetnames:
         ws = wb[hoja_objetivo]
     elif "3er. Trim." in wb.sheetnames:
@@ -202,7 +209,6 @@ def exportar_plantilla_xlsm(request):
             if not insumos:
                 continue
 
-            # Si el estudiante está retirado o no tiene ninguna nota (>0), no toca sus celdas
             if omitir_sin_notas and all(v == 0.0 for v in insumos):
                 continue
 
