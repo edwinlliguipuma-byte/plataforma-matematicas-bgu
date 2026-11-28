@@ -172,10 +172,12 @@ class ModuloInteractivoAdmin(admin.ModelAdmin):
         tit = (obj.evaluacion_vinculada.titulo if obj.evaluacion_vinculada else obj.titulo or "").upper()
         if tit.startswith("[EIS]") or tit.startswith("[MÓDULO IA]") or tit.startswith("[MODULO IA]") or "(EIS)" in tit:
             return format_html(
-                '<span style="background:#f3e8ff;color:#6b21a8;padding:3px 9px;border-radius:999px;font-weight:700;font-size:11px;">EIS (Trimestral)</span>'
+                '<span style="background:#f3e8ff;color:#6b21a8;padding:3px 9px;border-radius:999px;font-weight:700;font-size:11px;">{}</span>',
+                "EIS (Trimestral)",
             )
         return format_html(
-            '<span style="background:#e0e7ff;color:#1e40af;padding:3px 9px;border-radius:999px;font-weight:700;font-size:11px;">Evaluación Online</span>'
+            '<span style="background:#e0e7ff;color:#1e40af;padding:3px 9px;border-radius:999px;font-weight:700;font-size:11px;">{}</span>',
+            "Evaluación Online",
         )
 
     tipo_columna_sabana.short_description = "Columna en Sábana"
