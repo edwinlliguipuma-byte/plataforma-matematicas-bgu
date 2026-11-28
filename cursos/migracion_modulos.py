@@ -6,7 +6,7 @@ from .models import Evaluacion, ModuloInteractivo
 
 def _limpiar_titulo_comparacion(titulo):
     txt = (titulo or "").strip()
-    txt = re.sub(r"^\[(?:m[o?]dulo\s*ia|eis|evaluaci[o?]n\s*ia)\]\s*", "", txt, flags=re.IGNORECASE)
+    txt = re.sub(r"^\[(?:m[oó?]dulo\s*ia|eis|evaluaci[oó?]n\s*ia)\]\s*", "", txt, flags=re.IGNORECASE)
     txt = "".join(
         c for c in unicodedata.normalize("NFD", txt.upper()) if unicodedata.category(c) != "Mn"
     )
@@ -15,11 +15,11 @@ def _limpiar_titulo_comparacion(titulo):
 
 def _detectar_esp_par(nombre_curso):
     texto = (nombre_curso or "").lower()
-    esp = "Inform?tica"
+    esp = "Informática"
     if "contab" in texto:
         esp = "Contabilidad"
     elif "inform" in texto:
-        esp = "Inform?tica"
+        esp = "Informática"
     elif "venta" in texto:
         esp = "Ventas"
     elif "agrop" in texto:
@@ -35,9 +35,20 @@ def _detectar_esp_par(nombre_curso):
 
 def migrar_evaluaciones_sin_sobrescribir():
     """
-    Env?a a ModuloInteractivo todo registro de Evaluacion que a?n no exista all?,
-    sin duplicar ni sobrescribir ning?n m?dulo IA existente.
+    Envia a ModuloInteractivo todo registro de Evaluacion que aun no exista alli,
+    sin duplicar ni sobrescribir ningun modulo IA existente.
     """
+    ModuloInteractivo.objects.filter(especialidad__contains="?").update(especialidad="Informática")
+    for ev_fix in Evaluacion.objects.filter(titulo__contains="?"):
+        nuevo_tit = (
+            ev_fix.titulo
+            .replace("[Evaluaci?n IA]", "[Evaluación IA]")
+            .replace("[M?dulo IA]", "[Módulo IA]")
+        )
+        if nuevo_tit != ev_fix.titulo:
+            ev_fix.titulo = nuevo_tit
+            ev_fix.save(update_fields=["titulo"])
+
     existentes_por_vinculo = set(
         ModuloInteractivo.objects.exclude(evaluacion_vinculada__isnull=True)
         .values_list("evaluacion_vinculada_id", flat=True)
@@ -56,7 +67,6 @@ def migrar_evaluaciones_sin_sobrescribir():
 
         clave_ev = (ev.curso_id, _limpiar_titulo_comparacion(ev.titulo))
         if clave_ev in mapa_existentes:
-            # Ya existe en M?dulos IA: NO sobrescribir; solo vincular si estaba suelto
             mod_existente = mapa_existentes[clave_ev]
             if mod_existente.evaluacion_vinculada_id is None:
                 mod_existente.evaluacion_vinculada = ev
@@ -64,11 +74,11 @@ def migrar_evaluaciones_sin_sobrescribir():
             continue
 
         titulo_limpio = re.sub(
-            r"^\[(?:m[o?]dulo\s*ia|eis|evaluaci[o?]n\s*ia)\]\s*",
+            r"^\[(?:m[oó?]dulo\s*ia|eis|evaluaci[oó?]n\s*ia)\]\s*",
             "",
             (ev.titulo or "").strip(),
             flags=re.IGNORECASE,
-        ).strip() or (ev.titulo or "M?dulo Acad?mico")
+        ).strip() or (ev.titulo or "Módulo Académico")
 
         desc = (ev.descripcion or "").strip()
         url_ext = (ev.enlace_externo or "").strip()
@@ -93,7 +103,7 @@ def migrar_evaluaciones_sin_sobrescribir():
 
         nuevo_mod = ModuloInteractivo.objects.create(
             titulo=titulo_limpio[:200],
-            asignatura="Matem?tica",
+            asignatura="Matemática",
             curso=ev.curso,
             especialidad=esp,
             paralelo=par,

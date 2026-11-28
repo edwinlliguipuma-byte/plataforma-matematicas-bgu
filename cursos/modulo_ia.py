@@ -715,10 +715,10 @@ def ver_modulo_interactivo(request, modulo_id):
     contenido = json.loads(modulo.contenido_json)
     if contenido.get("es_migrado_externo"):
         from django.utils.html import escape
-        inst = escape(contenido.get("instrucciones") or "Revisa las indicaciones y accede al recurso del m?dulo.")
+        inst = escape(contenido.get("instrucciones") or "Revisa las indicaciones y accede al recurso del módulo.")
         enlace = (contenido.get("enlace_externo") or "").strip()
         btn_ext = (
-            f'<a href="{escape(enlace)}" target="_blank" style="display:inline-block;background:#2563eb;color:#fff;font-weight:800;padding:14px 24px;border-radius:12px;text-decoration:none;margin-right:10px;">?? Abrir Actividad / Evaluaci?n</a>'
+            f'<a href="{escape(enlace)}" target="_blank" style="display:inline-block;background:#2563eb;color:#fff;font-weight:800;padding:14px 24px;border-radius:12px;text-decoration:none;margin-right:10px;">?Abrir Actividad / Evaluación</a>'
             if enlace else ""
         )
         html_migrado = f"""<!DOCTYPE html>
@@ -730,7 +730,7 @@ def ver_modulo_interactivo(request, modulo_id):
 <h1 style="margin:0 0 8px;font-size:24px;">{escape(modulo.titulo)}</h1>
 <p style="color:#94a3b8;font-size:14px;margin:0 0 20px;">Curso: <strong style="color:#e2e8f0;">{escape(modulo.curso.nombre)}</strong></p>
 <div style="background:#020617;border:1px solid #334155;border-radius:12px;padding:16px;white-space:pre-line;line-height:1.6;margin-bottom:22px;font-size:15px;">{inst}</div>
-<div>{btn_ext}<a href="/aula/" style="display:inline-block;background:#1e293b;color:#e2e8f0;font-weight:700;padding:14px 20px;border-radius:12px;text-decoration:none;">? Volver al Aula Virtual</a></div>
+<div>{btn_ext}<a href="/aula/" style="display:inline-block;background:#1e293b;color:#e2e8f0;font-weight:700;padding:14px 20px;border-radius:12px;text-decoration:none;">← Volver al Aula Virtual</a></div>
 </div></body></html>"""
         return HttpResponse(html_migrado)
     cedula_inicial = request.GET.get("cedula", "").strip()
