@@ -16,9 +16,11 @@ from .views_asistencia import (
     sabana_asistencia_pizarra,
     exportar_sabana_csv,
 )
+from .views_excel import exportar_plantilla_xlsm
 
 urlpatterns = [
     path('docente/', panel_docente_institucional, name='panel_docente'),
+    path('docente/exportar-xlsm/', exportar_plantilla_xlsm, name='exportar_plantilla_xlsm'),
     path('docente/crear-modulo-ia/', crear_modulo_ia, name='crear_modulo_ia'),
     path('modulo/<int:modulo_id>/', ver_modulo_interactivo, name='ver_modulo_interactivo'),
     path('api/estudiante/', api_buscar_estudiante, name='api_buscar_estudiante'),

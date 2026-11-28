@@ -76,14 +76,17 @@
                     id="filtroRapidoTabla"
                     oninput="filtrarEstudiantesTabla()"
                     placeholder="🔍 Buscar rápido por apellido, nombre o cédula..."
-                    class="bg-slate-950 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-3.5 py-2 text-sm text-white flex-1 min-w-[240px] max-w-md"
+                    class="bg-slate-950 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-3.5 py-2 text-sm text-white flex-1 min-w-[220px] max-w-md"
                 >
             </div>
 
             <div class="flex flex-wrap gap-2">
-                <a href="/admin/cursos/tarea/add/" class="bg-blue-700 hover:bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">+ Nueva Tarea / Cuaderno</a>
-                <a href="/admin/cursos/evaluacion/add/" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">+ Nueva Evaluación Online</a>
-                <a href="?curso_id={{ curso_id_actual }}&exportar=csv" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">📥 Descargar Excel (CSV)</a>
+                <a href="/admin/cursos/tarea/add/" class="bg-blue-700 hover:bg-blue-600 text-white font-bold px-3 py-2 rounded-xl text-xs transition">+ Nueva Tarea / Cuaderno</a>
+                <a href="/admin/cursos/evaluacion/add/" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-3 py-2 rounded-xl text-xs transition">+ Nueva Evaluación Online</a>
+                <button type="button" onclick="abrirModalXlsm()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs shadow transition cursor-pointer">
+                    📤 Llenar Plantilla Oficial (.xlsm)
+                </button>
+                <a href="?curso_id={{ curso_id_actual }}&exportar=csv" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs transition">📥 Descargar CSV</a>
             </div>
         </div>
 
@@ -154,6 +157,68 @@
         </div>
     </div>
 
+    <!-- MODAL PARA LLENAR PLANTILLA OFICIAL .XLSM -->
+    <div id="modalPlantillaXlsm" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <h2 class="text-lg font-black text-white">📤 Llenar Plantilla Oficial (.xlsm)</h2>
+                <button type="button" onclick="cerrarModalXlsm()" class="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">&times;</button>
+            </div>
+
+            <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                Selecciona el archivo <strong>.xlsm</strong> de tu curso. El sistema escribirá <strong>únicamente los 7 insumos</strong> (columnas <strong>F</strong> a <strong>L</strong>: Materia, Deberes, Talleres, Act-Clase, Lecc-Pizarra, EIS y Evaluación Online) y te devolverá el mismo archivo con todas sus macros, logos y fórmulas intactos.
+            </p>
+
+            <form action="{% url 'exportar_plantilla_xlsm' %}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">1. Selecciona tu archivo Excel (.xlsm)</label>
+                    <input
+                        type="file"
+                        name="archivo_xlsm"
+                        accept=".xlsm,.xlsx"
+                        required
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400"
+                    >
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">2. Curso en Plataforma</label>
+                        <select name="curso_id" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="">✨ Detectar automáticamente</option>
+                            {% for c in cursos %}
+                            <option value="{{ c.id }}" {% if curso_id_actual == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">3. Pestaña del Excel</label>
+                        <select name="trimestre" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="3er. Trim." selected>3er. Trim.</option>
+                            <option value="2do. Trim.">2do. Trim.</option>
+                            <option value="1er. Trim.">1er. Trim.</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer pt-1">
+                    <input type="checkbox" name="omitir_sin_notas" value="1" checked class="rounded border-slate-600 bg-slate-950 text-amber-500">
+                    <span>Proteger retirados: no escribir ceros en estudiantes sin notas (0,0)</span>
+                </label>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="cerrarModalXlsm()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-500 text-white shadow cursor-pointer">
+                        ⚡ Generar y Descargar .xlsm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- PIE DE PÁGINA INSTITUCIONAL -->
     <footer class="border-t border-slate-800/80 bg-slate-900/60 py-3.5 px-6 text-center text-xs text-slate-400">
         Plataforma Académica BGU Técnico • Creada por <strong class="text-slate-200">Msc. Edwin Lliguipuma</strong> — <strong class="text-amber-400">Unidad Educativa "Dr. Enrique Noboa"</strong>
@@ -173,6 +238,18 @@
                 const texto = tr.getAttribute('data-busqueda') || '';
                 tr.style.display = (!q || texto.includes(q)) ? '' : 'none';
             });
+        }
+
+        function abrirModalXlsm() {
+            const modal = document.getElementById('modalPlantillaXlsm');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function cerrarModalXlsm() {
+            const modal = document.getElementById('modalPlantillaXlsm');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
     </script>
 </body>
