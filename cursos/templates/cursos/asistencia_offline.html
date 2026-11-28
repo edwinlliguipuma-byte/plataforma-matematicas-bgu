@@ -3,1101 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Asistencia y Pizarra III Trimestre — BGU</title>
-    <meta name="theme-color" content="#0f172a">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%);
-            color: #0f172a;
-            margin: 0;
-            padding: 14px;
-            min-height: 100vh;
-        }
-        .container { max-width: 1180px; margin: 0 auto; }
-
-        .top-card {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #fff;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
-            margin-bottom: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .top-meta {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.8rem;
-            letter-spacing: 0.3px;
-            color: #cbd5e1;
-            margin-bottom: 10px;
-        }
-        .badge-offline {
-            background: rgba(16, 185, 129, 0.18);
-            color: #34d399;
-            border: 1px solid rgba(52, 211, 153, 0.35);
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-weight: 700;
-        }
-        .badge-offline.sin-red {
-            background: rgba(245, 158, 11, 0.2);
-            color: #fbbf24;
-            border-color: rgba(251, 191, 36, 0.4);
-        }
-        .curso-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 6px;
-        }
-        .curso-row h1 {
-            margin: 0;
-            font-size: 1.4rem;
-            font-weight: 800;
-            letter-spacing: -0.3px;
-        }
-        .select-curso {
-            background: #0f172a;
-            color: #fff;
-            border: 1.5px solid #38bdf8;
-            border-radius: 12px;
-            padding: 10px 14px;
-            font-size: 0.98rem;
-            font-weight: 700;
-            min-width: 270px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        .subtitulo {
-            color: #94a3b8;
-            font-size: 0.92rem;
-            margin: 0 0 14px 0;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-        }
-        .pill-horario {
-            background: rgba(56, 189, 248, 0.16);
-            color: #7dd3fc;
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            padding: 3px 10px;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 0.82rem;
-        }
-        .sync-bar {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.84rem;
-            color: #cbd5e1;
-            margin-bottom: 12px;
-        }
-        .estado-guardado { color: #34d399; font-weight: 700; }
-
-        .btn-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-        .btn {
-            border: none;
-            border-radius: 12px;
-            padding: 11px 14px;
-            font-size: 0.92rem;
-            font-weight: 700;
-            color: #fff;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            text-decoration: none;
-            transition: transform 0.08s ease, filter 0.15s ease;
-        }
-        .btn:hover { filter: brightness(1.06); }
-        .btn:active { transform: scale(0.98); }
-        .btn-sync { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        .btn-sabana { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
-        .btn-csv { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
-        .btn-json { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-        .btn-import { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-
-        .escala-box {
-            background: rgba(15, 23, 42, 0.75);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 10px 14px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.85rem;
-            color: #fbbf24;
-            font-weight: 700;
-        }
-        .chips-escala { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-        .chip-e {
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 4px 11px;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            font-weight: 800;
-        }
-
-        .panel-card {
-            background: #fff;
-            border-radius: 18px;
-            padding: 16px;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-            border: 1px solid #e2e8f0;
-            margin-bottom: 14px;
-        }
-        .dias-semana-bar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding-bottom: 12px;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .dias-semana-bar span {
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: #334155;
-        }
-        .dias-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-        .dia-toggle {
-            border: 1px solid #cbd5e1;
-            background: #f8fafc;
-            color: #475569;
-            padding: 6px 13px;
-            border-radius: 9px;
-            font-weight: 800;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.12s ease;
-        }
-        .dia-toggle.activo {
-            background: #2563eb;
-            color: #fff;
-            border-color: #2563eb;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
-        }
-
-        .fecha-header {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        .fecha-nav {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .btn-nav-fecha {
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            width: 38px;
-            height: 38px;
-            font-size: 1.15rem;
-            font-weight: 800;
-            cursor: pointer;
-            color: #0f172a;
-        }
-        .fecha-titulo { text-align: center; }
-        .fecha-titulo h2 { margin: 0; font-size: 1.15rem; color: #0f172a; }
-        .fecha-titulo small { color: #64748b; }
-
-        .agregar-fecha-box {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .input-fecha {
-            padding: 8px 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #0f172a;
-        }
-        .btn-add-fecha {
-            background: #0f172a;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            padding: 9px 12px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .fechas-scroll {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 6px;
-        }
-        .fecha-pill {
-            flex: 0 0 auto;
-            background: #f8fafc;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 8px 12px;
-            text-align: center;
-            cursor: pointer;
-            min-width: 86px;
-            transition: all 0.12s ease;
-        }
-        .fecha-pill.completa {
-            border-color: #86efac;
-            background: #f0fdf4;
-        }
-        .fecha-pill.activa {
-            background: #0f172a;
-            color: #fff;
-            border-color: #0f172a;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
-        }
-        .fecha-pill .dia { font-weight: 800; font-size: 0.88rem; display: block; }
-        .fecha-pill .conteo {
-            display: inline-block;
-            margin-top: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 6px;
-            background: #e2e8f0;
-            color: #334155;
-        }
-        .fecha-pill.completa .conteo {
-            background: #bbf7d0;
-            color: #166534;
-        }
-        .fecha-pill.activa .conteo {
-            background: #2563eb;
-            color: #fff;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        @media (max-width: 720px) {
-            .stats-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        .stat-box {
-            border-radius: 12px;
-            padding: 10px 6px;
-            text-align: center;
-            font-weight: 800;
-        }
-        .stat-box small { display: block; font-size: 0.72rem; margin-bottom: 2px; }
-        .stat-box span { font-size: 1.25rem; }
-        .st-p { background: #dcfce7; color: #166534; }
-        .st-f { background: #fee2e2; color: #991b1b; }
-        .st-a { background: #fef3c7; color: #92400e; }
-        .st-j { background: #dbeafe; color: #1e40af; }
-        .st-fg { background: #f3e8ff; color: #6b21a8; }
-        .st-s { background: #f1f5f9; color: #475569; }
-
-        .acciones-masivas {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 10px;
-        }
-        .btn-todos-p { background: #15803d; font-size: 1rem; padding: 12px; }
-        .btn-limpiar { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-
-        .buscador {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 14px;
-            font-size: 1rem;
-            margin-bottom: 14px;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
-        }
-        .buscador:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-
-        .estudiante-item {
-            background: #fff;
-            border-radius: 14px;
-            padding: 12px 14px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-            border: 1px solid #e2e8f0;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            border-left: 5px solid #cbd5e1;
-        }
-        .estudiante-item.marcado-P { border-left-color: #16a34a; }
-        .estudiante-item.marcado-F { border-left-color: #dc2626; }
-        .estudiante-item.marcado-A { border-left-color: #d97706; }
-        .estudiante-item.marcado-J { border-left-color: #2563eb; }
-        .estudiante-item.marcado-FG { border-left-color: #9333ea; }
-        .estudiante-item.es-retirado {
-            background: #f8fafc;
-            opacity: 0.68;
-            border-left-color: #f59e0b;
-        }
-
-        .est-info { flex: 1 1 240px; }
-        .est-num {
-            display: inline-block;
-            background: #e2e8f0;
-            color: #1e293b;
-            font-weight: 800;
-            font-size: 0.78rem;
-            padding: 2px 8px;
-            border-radius: 6px;
-            margin-right: 6px;
-        }
-        .est-nombre { font-weight: 700; font-size: 0.96rem; color: #0f172a; }
-        .badge-retirado {
-            display: inline-block;
-            background: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fcd34d;
-            font-size: 0.72rem;
-            font-weight: 800;
-            padding: 2px 8px;
-            border-radius: 6px;
-            margin-left: 6px;
-        }
-
-        .controles-est {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
-        .grupo-botones {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 3px;
-            background: #f8fafc;
-            padding: 4px;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-        }
-        .btn-opt {
-            border: none;
-            background: transparent;
-            padding: 7px 10px;
-            border-radius: 8px;
-            font-weight: 800;
-            font-size: 0.85rem;
-            cursor: pointer;
-            color: #475569;
-            transition: background 0.1s ease, color 0.1s ease;
-        }
-        .btn-opt:disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-        }
-        .btn-opt.active-P { background: #16a34a; color: #fff; }
-        .btn-opt.active-F { background: #dc2626; color: #fff; }
-        .btn-opt.active-A { background: #d97706; color: #fff; }
-        .btn-opt.active-J { background: #2563eb; color: #fff; }
-        .btn-opt.active-FG { background: #9333ea; color: #fff; }
-
-        .btn-opt.active-10 { background: #059669; color: #fff; }
-        .btn-opt.active-9 { background: #10b981; color: #fff; }
-        .btn-opt.active-8 { background: #2563eb; color: #fff; }
-        .btn-opt.active-7 { background: #0284c7; color: #fff; }
-        .btn-opt.active-6 { background: #d97706; color: #fff; }
-        .btn-opt.active-5 { background: #ea580c; color: #fff; }
-        .btn-opt.active-2 { background: #dc2626; color: #fff; }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #0f172a;
-            color: #fff;
-            padding: 12px 22px;
-            border-radius: 12px;
-            font-weight: 700;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.28);
-            z-index: 9999;
-            display: none;
-        }
-    </style>
+    <title>Asistencia y Pizarra Offline • U.E. Dr. Enrique Noboa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24">
+    <div class="max-w-3xl mx-auto px-3 py-4">
 
-<div class="container">
-    <div class="top-card">
-        <div class="top-meta">
-            <span>U.E. "DR. ENRIQUE NOBOA ARÍZAGA" • 2026–2027</span>
-            <span id="badgeRed" class="badge-offline">● Listo Sin Internet</span>
-        </div>
-
-        <div class="curso-row">
-            <h1 id="tituloCurso">Asistencia y Pizarra</h1>
-            <select id="selectCurso" class="select-curso" onchange="cambiarCurso(this.value)"></select>
-        </div>
-
-        <p class="subtitulo">
-            <span>Matemática • III Trimestre • Msc. Edwin Lliguipuma E.</span>
-            <span id="pillHorarioCurso" class="pill-horario">Horario</span>
-        </p>
-
-        <div class="sync-bar">
-            <span>🏠 Guarda en el celular y sincroniza con la Sábana Horizontal</span>
-            <span id="estadoGuardado" class="estado-guardado">Listo</span>
-        </div>
-
-        <div class="btn-grid">
-            <button class="btn btn-sync" onclick="sincronizarConServidor()">☁️ Guardar en Plataforma</button>
-            <a id="btnVerSabana" href="/docente/sabana-asistencia/" class="btn btn-sabana">📊 Ver Sábana Horizontal</a>
-            <button class="btn btn-csv" onclick="exportarCSVLocal()">📗 CSV (Excel)</button>
-            <button class="btn btn-json" onclick="descargarRespaldoJSON()">💾 Respaldo .JSON</button>
-            <label class="btn btn-import" style="margin:0;">
-                📂 Importar .JSON
-                <input type="file" accept=".json" style="display:none;" onchange="importarRespaldoJSON(event)">
-            </label>
-        </div>
-
-        <div class="escala-box">
-            <span>📋 Asistencia: P (1) • J (0,9) • A (0,7) • F (0) • FG Fuga (0)</span>
-            <div class="chips-escala">
-                <span>✏️ Pizarra:</span>
-                <span class="chip-e" style="color:#34d399;">10</span>
-                <span class="chip-e" style="color:#6ee7b7;">9</span>
-                <span class="chip-e" style="color:#60a5fa;">8</span>
-                <span class="chip-e" style="color:#38bdf8;">7</span>
-                <span class="chip-e" style="color:#fbbf24;">6</span>
-                <span class="chip-e" style="color:#fb923c;">5</span>
-                <span class="chip-e" style="color:#f87171;">2</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="panel-card">
-        <div class="dias-semana-bar">
-            <span>📅 Días de clase de este curso:</span>
-            <div class="dias-chips" id="diasSemanaChips"></div>
-        </div>
-
-        <div class="fecha-header">
-            <div class="fecha-nav">
-                <button class="btn-nav-fecha" onclick="moverFecha(-1)">‹</button>
-                <div class="fecha-titulo">
-                    <h2 id="fechaActualTexto">Lunes 23/11/2026</h2>
-                    <small id="subtituloFecha">Sesión activa • Fechas de este curso</small>
+        <!-- CABECERA MÓVIL -->
+        <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border border-blue-800/60 rounded-2xl p-4 mb-4 shadow-xl">
+            <div class="flex items-center justify-between gap-2">
+                <div>
+                    <p class="text-[10px] font-extrabold tracking-widest text-amber-400 uppercase">U.E. Técnica "Dr. Enrique Noboa"</p>
+                    <h1 class="text-lg font-black text-white">📱 Asistencia y Pizarra en Clase</h1>
                 </div>
-                <button class="btn-nav-fecha" onclick="moverFecha(1)">›</button>
+                <span id="badgeConexion" class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    🟢 En línea
+                </span>
             </div>
 
-            <div class="agregar-fecha-box">
-                <input type="date" id="nuevaFechaInput" class="input-fecha">
-                <button class="btn-add-fecha" onclick="agregarFechaPersonalizada()">+ Fecha</button>
+            <!-- SELECTORES CURSO Y FECHA -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Curso</label>
+                    <select id="selectCurso" onchange="renderLista()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white"></select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Fecha de Clase</label>
+                    <input type="date" id="inputFecha" onchange="renderLista()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white">
+                </div>
+            </div>
+
+            <!-- PESTAÑAS ASISTENCIA / PIZARRA -->
+            <div class="grid grid-cols-2 gap-2 mt-3">
+                <button type="button" id="tabAsistencia" onclick="cambiarModo('asistencia')" class="py-2.5 rounded-xl text-xs font-extrabold bg-cyan-600 text-white shadow cursor-pointer">
+                    📋 Asistencia
+                </button>
+                <button type="button" id="tabPizarra" onclick="cambiarModo('pizarra')" class="py-2.5 rounded-xl text-xs font-extrabold bg-slate-800 text-slate-300 border border-slate-700 cursor-pointer">
+                    🧑‍🏫 Pizarra (Múltiples Notas)
+                </button>
             </div>
         </div>
 
-        <div id="fechasScroll" class="fechas-scroll"></div>
+        <!-- BARRA ACCIONES RÁPIDAS -->
+        <div id="barraAsistencia" class="flex items-center justify-between gap-2 mb-3">
+            <input type="text" id="buscarAlumno" oninput="renderLista()" placeholder="🔍 Filtrar estudiante..." class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white flex-1">
+            <button type="button" onclick="marcarTodosPresentes()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-3 py-2 rounded-xl text-xs whitespace-nowrap cursor-pointer">
+                ✅ Todos (P)
+            </button>
+        </div>
+
+        <div id="barraPizarra" class="hidden bg-amber-950/40 border border-amber-700/60 rounded-xl p-3 mb-3 text-xs text-amber-200">
+            💡 <strong>Varias notas el mismo día:</strong> Toca cada nota que obtenga el estudiante (ej. <strong>7</strong> y luego <strong>10</strong>). El celular las acumula y calcula el promedio (<strong>8.50</strong>) automáticamente sin internet. Toca una etiqueta de nota para borrarla si te equivocaste.
+        </div>
+
+        <!-- LISTA DE ESTUDIANTES -->
+        <div id="contenedorEstudiantes" class="space-y-2.5"></div>
     </div>
 
-    <div class="panel-card">
-        <div class="stats-grid">
-            <div class="stat-box st-p"><small>PRESENTES</small><span id="cntP">0</span></div>
-            <div class="stat-box st-f"><small>FALTAS</small><span id="cntF">0</span></div>
-            <div class="stat-box st-a"><small>ATRASOS</small><span id="cntA">0</span></div>
-            <div class="stat-box st-j"><small>JUSTIF.</small><span id="cntJ">0</span></div>
-            <div class="stat-box st-fg"><small>FUGAS</small><span id="cntFG">0</span></div>
-            <div class="stat-box st-s"><small>SIN MAR.</small><span id="cntS">0</span></div>
-        </div>
-        <div class="acciones-masivas">
-            <button class="btn btn-todos-p" onclick="marcarTodosPresentes()">✓ Todos P (Presentes)</button>
-            <button class="btn btn-limpiar" onclick="limpiarDiaActual()">✕ Limpiar día</button>
+    <!-- BARRA FLOTANTE SINCRONIZACIÓN -->
+    <div class="fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 p-3 z-40">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-3">
+            <div class="text-xs">
+                <span class="text-slate-400">Guardados en celular:</span>
+                <strong id="contadorPendientes" class="text-amber-400 ml-1">0 registros</strong>
+            </div>
+            <div class="flex gap-2">
+                <a href="/docente/" class="bg-slate-800 text-slate-300 font-bold px-3 py-2.5 rounded-xl text-xs border border-slate-700">Panel</a>
+                <button type="button" onclick="sincronizarTodo()" id="btnSync" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-lg cursor-pointer">
+                    🔄 Sincronizar con Plataforma
+                </button>
+            </div>
         </div>
     </div>
 
-    <input type="text" id="buscadorEst" class="buscador" placeholder="🔍 Buscar estudiante por nombre o N.°..." oninput="renderizarEstudiantes()">
+    <script>
+        const CURSOS_DATA = {{ cursos_json|safe }};
+        const STORAGE_KEY_ASIST = 'bgu_offline_asistencia_v2';
+        const STORAGE_KEY_PIZ = 'bgu_offline_pizarra_multi_v2';
 
-    <div id="listaEstudiantes"></div>
-</div>
+        let modoActual = 'asistencia';
+        let colaAsistencia = JSON.parse(localStorage.getItem(STORAGE_KEY_ASIST) || '{}');
+        let colaPizarra = JSON.parse(localStorage.getItem(STORAGE_KEY_PIZ) || '{}');
 
-<div id="toast" class="toast"></div>
-
-<script>
-const CURSOS = {{ cursos_json|safe }};
-const STORAGE_KEY = 'bgu_asistencia_pizarra_v4';
-const ESTADOS_ASISTENCIA = ['P', 'F', 'A', 'J', 'FG'];
-const PESOS_ASISTENCIA = { P: 1.0, J: 0.9, A: 0.7, F: 0.0, FG: 0.0 };
-const NOTAS_PIZARRA = [10, 9, 8, 7, 6, 5, 2];
-const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const DIAS_HABILES = [
-    { num: 1, label: 'Lun' },
-    { num: 2, label: 'Mar' },
-    { num: 3, label: 'Mié' },
-    { num: 4, label: 'Jue' },
-    { num: 5, label: 'Vie' }
-];
-
-function diasPredefinidosPorNombre(nombreCurso) {
-    const norm = (nombreCurso || '')
-        .toUpperCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
-
-    const es2do = /\b(2DO|2°|SEGUNDO)\b/.test(norm);
-    const es3ro = /\b(3RO|3ERO|3°|TERCERO)\b/.test(norm);
-    const esCont = /CONT/.test(norm);
-    const esInf = /INF/.test(norm);
-
-    let paralelo = '';
-    if (/['"\s]A(?:['"\s]|$)/.test(norm)) paralelo = 'A';
-    else if (/['"\s]B(?:['"\s]|$)/.test(norm)) paralelo = 'B';
-    else if (/['"\s]C(?:['"\s]|$)/.test(norm)) paralelo = 'C';
-
-    if (es2do && esCont && paralelo === 'A') return [1, 2];
-    if (es2do && esCont && paralelo === 'B') return [4, 5];
-    if (es2do && esInf && paralelo === 'A')  return [2, 3];
-    if (es2do && esInf && paralelo === 'B')  return [1, 3];
-
-    if (es3ro && esCont && paralelo === 'A') return [2];
-    if (es3ro && esCont && paralelo === 'B') return [1];
-    if (es3ro && esInf && paralelo === 'A')  return [4];
-    if (es3ro && esInf && paralelo === 'B')  return [5];
-    if (es3ro && esInf && paralelo === 'C')  return [4];
-
-    return [1, 2];
-}
-
-function formatearISO(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-}
-
-function parsearISO(iso) {
-    const [y, m, d] = iso.split('-').map(Number);
-    return new Date(y, m - 1, d);
-}
-
-function generarFechasPorDias(diasElegidos) {
-    const inicio = new Date(2026, 10, 23);
-    const totalDias = 14 * 7;
-    const lista = [];
-    for (let i = 0; i < totalDias; i++) {
-        const d = new Date(inicio);
-        d.setDate(inicio.getDate() + i);
-        if (diasElegidos.includes(d.getDay())) {
-            lista.push(formatearISO(d));
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw-asistencia.js').catch(() => {});
         }
-    }
-    return lista;
-}
 
-let estado = {
-    cursoId: CURSOS.length ? CURSOS[0].id : null,
-    diasPorCurso: {},
-    fechaActivaPorCurso: {},
-    fechasExtraPorCurso: {},
-    asistencia: {},
-    pizarra: {}
-};
-
-function cargarEstado() {
-    try {
-        const rawV4 = localStorage.getItem(STORAGE_KEY);
-        if (rawV4) {
-            estado = Object.assign(estado, JSON.parse(rawV4));
-        } else {
-            const rawPrev = localStorage.getItem('bgu_asistencia_pizarra_v3') || localStorage.getItem('bgu_asistencia_pizarra_v2');
-            if (rawPrev) {
-                const prev = JSON.parse(rawPrev);
-                if (prev.asistencia) estado.asistencia = prev.asistencia;
-                if (prev.pizarra) estado.pizarra = prev.pizarra;
-                if (prev.fechasExtraPorCurso) estado.fechasExtraPorCurso = prev.fechasExtraPorCurso;
+        function actualizarEstadoRed() {
+            const badge = document.getElementById('badgeConexion');
+            if (navigator.onLine) {
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-700';
+                badge.innerText = '🟢 En línea';
+            } else {
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-950 text-amber-300 border border-amber-700';
+                badge.innerText = '📴 Sin internet (Offline)';
             }
         }
-    } catch (e) {}
+        window.addEventListener('online', actualizarEstadoRed);
+        window.addEventListener('offline', actualizarEstadoRed);
 
-    if (!CURSOS.some(c => c.id === estado.cursoId) && CURSOS.length) {
-        estado.cursoId = CURSOS[0].id;
-    }
-
-    CURSOS.forEach(c => {
-        if (!estado.diasPorCurso[c.id] || !estado.diasPorCurso[c.id].length) {
-            estado.diasPorCurso[c.id] = diasPredefinidosPorNombre(c.nombre);
-        }
-        if (!estado.fechasExtraPorCurso[c.id]) {
-            estado.fechasExtraPorCurso[c.id] = [];
-        }
-        const fechas = getFechasCurso(c.id);
-        if (!estado.fechaActivaPorCurso[c.id] || !fechas.includes(estado.fechaActivaPorCurso[c.id])) {
-            estado.fechaActivaPorCurso[c.id] = fechas[0];
-        }
-    });
-    guardarEstadoLocal();
-}
-
-function getFechasCurso(cursoId) {
-    const c = CURSOS.find(x => x.id === Number(cursoId));
-    const dias = estado.diasPorCurso[cursoId] || diasPredefinidosPorNombre(c ? c.nombre : '');
-    const base = generarFechasPorDias(dias);
-    const extras = estado.fechasExtraPorCurso[cursoId] || [];
-    const set = new Set([...base, ...extras]);
-    return Array.from(set).sort();
-}
-
-function guardarEstadoLocal() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
-    const ahora = new Date();
-    const hh = String(ahora.getHours()).padStart(2, '0');
-    const mm = String(ahora.getMinutes()).padStart(2, '0');
-    document.getElementById('estadoGuardado').textContent = `Guardado ${hh}:${mm}`;
-}
-
-function mostrarToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.display = 'block';
-    clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3500);
-}
-
-function getCursoActual() {
-    return CURSOS.find(c => c.id === Number(estado.cursoId)) || CURSOS[0];
-}
-
-function getFechaActual() {
-    const c = getCursoActual();
-    return estado.fechaActivaPorCurso[c.id];
-}
-
-function inicializarSelectCursos() {
-    const sel = document.getElementById('selectCurso');
-    sel.innerHTML = CURSOS.map(c => {
-        const activos = c.estudiantes.filter(e => !e.retirado).length;
-        return `<option value="${c.id}" ${c.id === estado.cursoId ? 'selected' : ''}>${c.nombre} (${activos})</option>`;
-    }).join('');
-}
-
-function cambiarCurso(nuevoId) {
-    estado.cursoId = Number(nuevoId);
-    guardarEstadoLocal();
-    renderizarTodo();
-}
-
-function toggleDiaSemana(diaNum) {
-    const c = getCursoActual();
-    let dias = estado.diasPorCurso[c.id] || [];
-    if (dias.includes(diaNum)) {
-        if (dias.length === 1) {
-            mostrarToast('Debe quedar al menos un día de clase seleccionado');
-            return;
-        }
-        dias = dias.filter(d => d !== diaNum);
-    } else {
-        dias = [...dias, diaNum].sort();
-    }
-    estado.diasPorCurso[c.id] = dias;
-    const nuevasFechas = getFechasCurso(c.id);
-    if (!nuevasFechas.includes(estado.fechaActivaPorCurso[c.id])) {
-        estado.fechaActivaPorCurso[c.id] = nuevasFechas[0];
-    }
-    guardarEstadoLocal();
-    renderizarTodo();
-}
-
-function renderizarDiasSemana() {
-    const c = getCursoActual();
-    const activos = estado.diasPorCurso[c.id] || [];
-    const cont = document.getElementById('diasSemanaChips');
-    cont.innerHTML = DIAS_HABILES.map(d => `
-        <button type="button" class="dia-toggle ${activos.includes(d.num) ? 'activo' : ''}" onclick="toggleDiaSemana(${d.num})">
-            ${d.label}
-        </button>
-    `).join('');
-
-    const nombresDias = activos.map(num => DIAS_LARGOS[num]).join(' y ');
-    document.getElementById('pillHorarioCurso').textContent = `📅 ${nombresDias}`;
-}
-
-function agregarFechaPersonalizada() {
-    const val = document.getElementById('nuevaFechaInput').value;
-    if (!val) {
-        mostrarToast('Selecciona una fecha en el calendario primero');
-        return;
-    }
-    const c = getCursoActual();
-    if (!estado.fechasExtraPorCurso[c.id].includes(val)) {
-        estado.fechasExtraPorCurso[c.id].push(val);
-    }
-    estado.fechaActivaPorCurso[c.id] = val;
-    guardarEstadoLocal();
-    renderizarTodo();
-    mostrarToast(`Fecha ${val} agregada a ${c.nombre}`);
-}
-
-function seleccionarFecha(iso) {
-    const c = getCursoActual();
-    estado.fechaActivaPorCurso[c.id] = iso;
-    guardarEstadoLocal();
-    renderizarTodo();
-}
-
-function moverFecha(delta) {
-    const c = getCursoActual();
-    const lista = getFechasCurso(c.id);
-    const idx = lista.indexOf(getFechaActual());
-    const nuevoIdx = idx + delta;
-    if (nuevoIdx >= 0 && nuevoIdx < lista.length) {
-        seleccionarFecha(lista[nuevoIdx]);
-    }
-}
-
-function renderizarFechas() {
-    const c = getCursoActual();
-    const fechaActiva = getFechaActual();
-    const lista = getFechasCurso(c.id);
-    const activos = c.estudiantes.filter(e => !e.retirado);
-
-    const dObj = parsearISO(fechaActiva);
-    const diaLargo = DIAS_LARGOS[dObj.getDay()];
-    const dd = String(dObj.getDate()).padStart(2, '0');
-    const mm = String(dObj.getMonth() + 1).padStart(2, '0');
-    const yyyy = dObj.getFullYear();
-
-    document.getElementById('fechaActualTexto').textContent = `${diaLargo} ${dd}/${mm}/${yyyy}`;
-    document.getElementById('nuevaFechaInput').value = fechaActiva;
-
-    const cont = document.getElementById('fechasScroll');
-    cont.innerHTML = lista.map(iso => {
-        const d = parsearISO(iso);
-        const diaC = DIAS_SEMANA[d.getDay()];
-        const fCorta = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        let marcados = 0;
-        activos.forEach(e => {
-            if (estado.asistencia[`${c.id}_${iso}_${e.id}`]) marcados++;
-        });
-        const esCompleta = marcados > 0 && marcados === activos.length;
-        return `
-            <div class="fecha-pill ${esCompleta ? 'completa' : ''} ${iso === fechaActiva ? 'activa' : ''}" onclick="seleccionarFecha('${iso}')">
-                <span class="dia">${diaC} ${fCorta}</span>
-                <span class="conteo">${marcados}/${activos.length}</span>
-            </div>
-        `;
-    }).join('');
-}
-
-function actualizarContadores() {
-    const c = getCursoActual();
-    const fecha = getFechaActual();
-    let p = 0, f = 0, a = 0, j = 0, fg = 0, s = 0;
-
-    c.estudiantes.forEach(e => {
-        if (e.retirado) return;
-        const val = estado.asistencia[`${c.id}_${fecha}_${e.id}`];
-        if (val === 'P') p++;
-        else if (val === 'F') f++;
-        else if (val === 'A') a++;
-        else if (val === 'J') j++;
-        else if (val === 'FG') fg++;
-        else s++;
-    });
-
-    document.getElementById('cntP').textContent = p;
-    document.getElementById('cntF').textContent = f;
-    document.getElementById('cntA').textContent = a;
-    document.getElementById('cntJ').textContent = j;
-    document.getElementById('cntFG').textContent = fg;
-    document.getElementById('cntS').textContent = s;
-}
-
-function setAsistencia(estId, val) {
-    const c = getCursoActual();
-    const est = c.estudiantes.find(x => x.id === estId);
-    if (est && est.retirado) return;
-    const fecha = getFechaActual();
-    const key = `${c.id}_${fecha}_${estId}`;
-    if (estado.asistencia[key] === val) {
-        delete estado.asistencia[key];
-    } else {
-        estado.asistencia[key] = val;
-    }
-    guardarEstadoLocal();
-    renderizarFechas();
-    actualizarContadores();
-    renderizarEstudiantes();
-}
-
-function setPizarra(estId, notaNum) {
-    const c = getCursoActual();
-    const est = c.estudiantes.find(x => x.id === estId);
-    if (est && est.retirado) return;
-    const fecha = getFechaActual();
-    const key = `${c.id}_${fecha}_${estId}`;
-    if (Number(estado.pizarra[key]) === Number(notaNum)) {
-        delete estado.pizarra[key];
-    } else {
-        estado.pizarra[key] = Number(notaNum);
-    }
-    guardarEstadoLocal();
-    renderizarEstudiantes();
-}
-
-function marcarTodosPresentes() {
-    const c = getCursoActual();
-    const fecha = getFechaActual();
-    c.estudiantes.forEach(e => {
-        if (!e.retirado) {
-            estado.asistencia[`${c.id}_${fecha}_${e.id}`] = 'P';
-        }
-    });
-    guardarEstadoLocal();
-    renderizarFechas();
-    actualizarContadores();
-    renderizarEstudiantes();
-    mostrarToast(`Todos los activos marcados Presentes (P) en ${c.nombre}`);
-}
-
-function limpiarDiaActual() {
-    const c = getCursoActual();
-    const fecha = getFechaActual();
-    c.estudiantes.forEach(e => {
-        if (!e.retirado) {
-            delete estado.asistencia[`${c.id}_${fecha}_${e.id}`];
-            delete estado.pizarra[`${c.id}_${fecha}_${e.id}`];
-        }
-    });
-    guardarEstadoLocal();
-    renderizarFechas();
-    actualizarContadores();
-    renderizarEstudiantes();
-    mostrarToast('Registros del día limpiados');
-}
-
-function renderizarEstudiantes() {
-    const c = getCursoActual();
-    const fecha = getFechaActual();
-    const filtro = (document.getElementById('buscadorEst').value || '').trim().toLowerCase();
-    const cont = document.getElementById('listaEstudiantes');
-
-    const html = c.estudiantes.map((e, idx) => {
-        const num = idx + 1;
-        if (filtro && !e.nombre.toLowerCase().includes(filtro) && String(num) !== filtro) {
-            return '';
-        }
-        const asist = estado.asistencia[`${c.id}_${fecha}_${e.id}`] || '';
-        const piz = estado.pizarra[`${c.id}_${fecha}_${e.id}`] || '';
-        const disAttr = e.retirado ? 'disabled' : '';
-
-        return `
-            <div class="estudiante-item ${e.retirado ? 'es-retirado' : (asist ? 'marcado-' + asist : '')}">
-                <div class="est-info">
-                    <span class="est-num">${num}</span>
-                    <span class="est-nombre">${e.nombre}</span>
-                    ${e.retirado ? '<span class="badge-retirado">🔒 RETIRADO (ESTÁTICO)</span>' : ''}
-                </div>
-                <div class="controles-est">
-                    <div class="grupo-botones" title="Asistencia: P(1), F(0), A(0.7), J(0.9), FG Fuga(0)">
-                        ${ESTADOS_ASISTENCIA.map(op => `
-                            <button ${disAttr} class="btn-opt ${asist === op ? 'active-' + op : ''}" onclick="setAsistencia(${e.id}, '${op}')">${op}</button>
-                        `).join('')}
-                    </div>
-                    <div class="grupo-botones" title="Nota de Pizarra (10, 9, 8, 7, 6, 5, 2)">
-                        ${NOTAS_PIZARRA.map(nota => `
-                            <button ${disAttr} class="btn-opt ${Number(piz) === nota ? 'active-' + nota : ''}" onclick="setPizarra(${e.id}, ${nota})">${nota}</button>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    cont.innerHTML = html || '<div class="panel-card">No se encontraron estudiantes con ese filtro.</div>';
-}
-
-function renderizarTodo() {
-    const c = getCursoActual();
-    if (!c) return;
-    document.getElementById('tituloCurso').textContent = `Asistencia y Pizarra — ${c.nombre}`;
-    document.getElementById('btnVerSabana').href = `/docente/sabana-asistencia/?curso=${c.id}`;
-    renderizarDiasSemana();
-    renderizarFechas();
-    actualizarContadores();
-    renderizarEstudiantes();
-}
-
-async function sincronizarConServidor() {
-    if (!navigator.onLine) {
-        mostrarToast('⚠️ Sin internet. Tus datos están seguros en el celular; sincroniza al tener señal.');
-        return;
-    }
-
-    const retiradosIds = new Set();
-    CURSOS.forEach(c => c.estudiantes.forEach(e => { if (e.retirado) retiradosIds.add(e.id); }));
-
-    const asistencias = [];
-    const pizarras = [];
-
-    Object.entries(estado.asistencia).forEach(([key, val]) => {
-        const [, fecha, estId] = key.split('_');
-        if (!retiradosIds.has(Number(estId))) {
-            asistencias.push({
-                estudiante_id: Number(estId),
-                fecha: fecha,
-                estado: val
+        function inicializar() {
+            const sel = document.getElementById('selectCurso');
+            CURSOS_DATA.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre;
+                sel.appendChild(opt);
             });
+
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            document.getElementById('inputFecha').value = `${yyyy}-${mm}-${dd}`;
+
+            actualizarEstadoRed();
+            actualizarContador();
+            renderLista();
         }
-    });
 
-    Object.entries(estado.pizarra).forEach(([key, notaVal]) => {
-        const [, fecha, estId] = key.split('_');
-        if (!retiradosIds.has(Number(estId))) {
-            pizarras.push({
-                estudiante_id: Number(estId),
-                fecha: fecha,
-                nota_cuanti: Number(notaVal)
-            });
-        }
-    });
+        function cambiarModo(nuevoModo) {
+            modoActual = nuevoModo;
+            const tabA = document.getElementById('tabAsistencia');
+            const tabP = document.getElementById('tabPizarra');
+            const barP = document.getElementById('barraPizarra');
 
-    if (!asistencias.length && !pizarras.length) {
-        mostrarToast('No hay marcas nuevas para sincronizar');
-        return;
-    }
-
-    mostrarToast('⏳ Guardando en la plataforma...');
-    try {
-        const resp = await fetch('/api/sincronizar-asistencia/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ asistencias, pizarras })
-        });
-        const data = await resp.json();
-        if (data.ok) {
-            mostrarToast('✅ ' + data.mensaje);
-        } else {
-            mostrarToast('❌ ' + (data.mensaje || 'Error al sincronizar'));
-        }
-    } catch (err) {
-        mostrarToast('❌ Error de conexión con Render. Intenta de nuevo en unos segundos.');
-    }
-}
-
-function exportarCSVLocal() {
-    const c = getCursoActual();
-    const fechas = getFechasCurso(c.id).filter(f =>
-        c.estudiantes.some(e => estado.asistencia[`${c.id}_${f}_${e.id}`] || estado.pizarra[`${c.id}_${f}_${e.id}`])
-    );
-    const cols = fechas.length ? fechas : [getFechaActual()];
-    let csv = '\uFEFFN°;Apellidos y Nombres;Estado;' + cols.join(';') + ';% Asistencia;Nota Actuación (/10)\n';
-
-    c.estudiantes.forEach((e, i) => {
-        let marc = 0, puntos = 0;
-        const vals = cols.map(f => {
-            const v = estado.asistencia[`${c.id}_${f}_${e.id}`] || '-';
-            if (v in PESOS_ASISTENCIA) {
-                marc++;
-                puntos += PESOS_ASISTENCIA[v];
+            if (nuevoModo === 'asistencia') {
+                tabA.className = 'py-2.5 rounded-xl text-xs font-extrabold bg-cyan-600 text-white shadow cursor-pointer';
+                tabP.className = 'py-2.5 rounded-xl text-xs font-extrabold bg-slate-800 text-slate-300 border border-slate-700 cursor-pointer';
+                barP.classList.add('hidden');
+            } else {
+                tabP.className = 'py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 text-slate-950 shadow cursor-pointer';
+                tabA.className = 'py-2.5 rounded-xl text-xs font-extrabold bg-slate-800 text-slate-300 border border-slate-700 cursor-pointer';
+                barP.classList.remove('hidden');
             }
-            return v;
-        });
-        const pct = marc ? ((puntos / marc) * 100).toFixed(1).replace('.', ',') + '%' : '0,0%';
-        const nota10 = marc ? ((puntos / marc) * 10).toFixed(2).replace('.', ',') : '0,00';
-        csv += `${i + 1};${e.nombre};${e.retirado ? 'RETIRADO' : 'ACTIVO'};${vals.join(';')};${pct};${nota10}\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `Asistencia_${c.nombre.replace(/\s+/g, '_')}.csv`;
-    a.click();
-}
-
-function descargarRespaldoJSON() {
-    const blob = new Blob([JSON.stringify(estado, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `Respaldo_Asistencia_BGU_${formatearISO(new Date())}.json`;
-    a.click();
-}
-
-function importarRespaldoJSON(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            const data = JSON.parse(e.target.result);
-            estado = Object.assign(estado, data);
-            guardarEstadoLocal();
-            inicializarSelectCursos();
-            renderizarTodo();
-            mostrarToast('✅ Respaldo cargado correctamente');
-        } catch (err) {
-            mostrarToast('❌ Archivo JSON no válido');
+            renderLista();
         }
-    };
-    reader.readAsText(file);
-}
 
-function actualizarEstadoRed() {
-    const b = document.getElementById('badgeRed');
-    if (navigator.onLine) {
-        b.textContent = '● Con Internet (Listo para Sincronizar)';
-        b.classList.remove('sin-red');
-    } else {
-        b.textContent = '● 100% Sin Internet (Guardando local)';
-        b.classList.add('sin-red');
-    }
-}
+        function guardarStorage() {
+            localStorage.setItem(STORAGE_KEY_ASIST, JSON.stringify(colaAsistencia));
+            localStorage.setItem(STORAGE_KEY_PIZ, JSON.stringify(colaPizarra));
+            actualizarContador();
+        }
 
-window.addEventListener('online', actualizarEstadoRed);
-window.addEventListener('offline', actualizarEstadoRed);
+        function actualizarContador() {
+            const total = Object.keys(colaAsistencia).length + Object.keys(colaPizarra).length;
+            document.getElementById('contadorPendientes').innerText = `${total} registros`;
+        }
 
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw-asistencia.js').catch(() => {});
-}
+        function setAsistencia(estId, estado) {
+            const fecha = document.getElementById('inputFecha').value;
+            const key = `${estId}_${fecha}`;
+            colaAsistencia[key] = { estudiante_id: estId, fecha: fecha, estado: estado };
+            guardarStorage();
+            renderLista();
+        }
 
-cargarEstado();
-inicializarSelectCursos();
-renderizarTodo();
-actualizarEstadoRed();
-</script>
+        function marcarTodosPresentes() {
+            const cursoId = parseInt(document.getElementById('selectCurso').value, 10);
+            const fecha = document.getElementById('inputFecha').value;
+            const curso = CURSOS_DATA.find(c => c.id === cursoId);
+            if (!curso) return;
+            curso.estudiantes.forEach(e => {
+                colaAsistencia[`${e.id}_${fecha}`] = { estudiante_id: e.id, fecha: fecha, estado: 'P' };
+            });
+            guardarStorage();
+            renderLista();
+        }
+
+        function agregarNotaPizarra(estId, nota) {
+            const fecha = document.getElementById('inputFecha').value;
+            const key = `${estId}_${fecha}`;
+            if (!colaPizarra[key]) {
+                colaPizarra[key] = { estudiante_id: estId, fecha: fecha, notas: [] };
+            }
+            colaPizarra[key].notas.push(Number(nota));
+            guardarStorage();
+            renderLista();
+        }
+
+        function quitarNotaPizarra(estId, idx) {
+            const fecha = document.getElementById('inputFecha').value;
+            const key = `${estId}_${fecha}`;
+            if (!colaPizarra[key]) return;
+            colaPizarra[key].notas.splice(idx, 1);
+            if (colaPizarra[key].notas.length === 0) {
+                delete colaPizarra[key];
+            }
+            guardarStorage();
+            renderLista();
+        }
+
+        function renderLista() {
+            const cursoId = parseInt(document.getElementById('selectCurso').value, 10);
+            const fecha = document.getElementById('inputFecha').value;
+            const filtro = (document.getElementById('buscarAlumno').value || '').trim().toLowerCase();
+            const cont = document.getElementById('contenedorEstudiantes');
+            cont.innerHTML = '';
+
+            const curso = CURSOS_DATA.find(c => c.id === cursoId);
+            if (!curso) return;
+
+            curso.estudiantes.forEach((est, idx) => {
+                if (filtro && !est.nombre.toLowerCase().includes(filtro) && !est.cedula.includes(filtro)) {
+                    return;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-3.5';
+
+                if (modoActual === 'asistencia') {
+                    const actual = (colaAsistencia[`${est.id}_${fecha}`] || {}).estado || '';
+                    const botones = [
+                        { cod: 'P', label: 'P', color: 'bg-emerald-600 text-white border-emerald-500' },
+                        { cod: 'A', label: 'A', color: 'bg-amber-500 text-slate-950 border-amber-400' },
+                        { cod: 'J', label: 'J', color: 'bg-blue-600 text-white border-blue-500' },
+                        { cod: 'F', label: 'F', color: 'bg-red-600 text-white border-red-500' },
+                    ].map(b => {
+                        const activo = actual === b.cod;
+                        const cls = activo
+                            ? `${b.color} font-black shadow-lg scale-105`
+                            : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800';
+                        return `<button type="button" onclick="setAsistencia(${est.id}, '${b.cod}')" class="w-11 h-10 rounded-xl border text-xs font-extrabold transition cursor-pointer">${b.label}</button>`;
+                    }).join('');
+
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-xs font-extrabold text-white truncate">${idx + 1}. ${est.nombre}</p>
+                                <p class="text-[11px] font-mono text-slate-400">${est.cedula}</p>
+                            </div>
+                            <div class="flex gap-1.5 shrink-0">${botones}</div>
+                        </div>
+                    `;
+                } else {
+                    const regPiz = colaPizarra[`${est.id}_${fecha}`];
+                    const notas = regPiz ? regPiz.notas : [];
+                    const prom = notas.length > 0
+                        ? (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(2)
+                        : null;
+
+                    const chipsHtml = notas.map((n, i) => `
+                        <button type="button" onclick="quitarNotaPizarra(${est.id}, ${i})" title="Toca para eliminar esta nota" class="px-2 py-0.5 rounded-lg bg-amber-950 text-amber-200 border border-amber-600 text-xs font-extrabold cursor-pointer">
+                            ${n} ×
+                        </button>
+                    `).join('');
+
+                    const btnsNotas = [10, 9, 8, 7, 6, 5, 2].map(n => `
+                        <button type="button" onclick="agregarNotaPizarra(${est.id}, ${n})" class="px-2.5 py-1.5 rounded-xl bg-slate-950 hover:bg-amber-500 hover:text-slate-950 border border-slate-700 text-xs font-extrabold text-slate-200 transition cursor-pointer">
+                            +${n}
+                        </button>
+                    `).join('');
+
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <p class="text-xs font-extrabold text-white">${idx + 1}. ${est.nombre}</p>
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                    ${chipsHtml || '<span class="text-[11px] text-slate-500">Sin notas hoy</span>'}
+                                </div>
+                            </div>
+                            ${prom !== null ? `<span class="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 text-xs font-black shrink-0">Prom: ${prom}</span>` : ''}
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-slate-800/80">
+                            ${btnsNotas}
+                        </div>
+                    `;
+                }
+
+                cont.appendChild(card);
+            });
+        }
+
+        async function sincronizarTodo() {
+            const asistList = Object.values(colaAsistencia);
+            const pizList = Object.values(colaPizarra).map(item => {
+                const prom = item.notas.reduce((a, b) => a + b, 0) / item.notas.length;
+                return {
+                    estudiante_id: item.estudiante_id,
+                    fecha: item.fecha,
+                    notas: item.notas,
+                    nota_cuanti: Number(prom.toFixed(2)),
+                };
+            });
+
+            if (asistList.length === 0 && pizList.length === 0) {
+                alert('No hay registros nuevos pendientes por sincronizar.');
+                return;
+            }
+
+            if (!navigator.onLine) {
+                alert('No tienes conexión a internet en este momento. Tus notas están seguras en el celular; sincroniza cuando tengas señal.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSync');
+            btn.disabled = true;
+            btn.innerText = '⏳ Sincronizando...';
+
+            try {
+                const resp = await fetch('/api/sincronizar-asistencia/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ asistencias: asistList, pizarras: pizList }),
+                });
+                const data = await resp.json();
+                if (data.ok) {
+                    colaAsistencia = {};
+                    colaPizarra = {};
+                    guardarStorage();
+                    renderLista();
+                    alert('✅ ' + data.mensaje);
+                } else {
+                    alert('⚠️ ' + (data.mensaje || 'Error al sincronizar'));
+                }
+            } catch (err) {
+                alert('⚠️ Error de red al sincronizar. Tus datos siguen guardados en el celular.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '🔄 Sincronizar con Plataforma';
+            }
+        }
+
+        inicializar();
+    </script>
 </body>
 </html>

@@ -3,8 +3,8 @@ import unicodedata
 import openpyxl
 from openpyxl.workbook.protection import WorkbookProtection
 from openpyxl.worksheet.protection import SheetProtection
-from django.apps import apps
 from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from .models import (
@@ -29,33 +29,10 @@ def _clave_alfabetica(est):
     return _normalizar_texto(est.nombre_completo)
 
 
-def _detectar_modelo_eis():
-    """Localiza dinámicamente el modelo de resultados de ModuloInteractivo (EIS) en la app cursos."""
-    app_config = apps.get_app_config("cursos")
-    for model in app_config.get_models():
-        if model.__name__ in ("ResultadoEvaluacion", "EntregaTarea"):
-            continue
-        campos_fk = {
-            f.name: f.related_model.__name__
-            for f in model._meta.fields
-            if getattr(f, "related_model", None) is not None
-        }
-        if "EstudiantePerfil" in campos_fk.values() and "ModuloInteractivo" in campos_fk.values():
-            campo_est = next(k for k, v in campos_fk.items() if v == "EstudiantePerfil")
-            campo_nota = None
-            for f in model._meta.fields:
-                if f.name in ("nota", "nota_obtenida", "calificacion", "puntaje"):
-                    campo_nota = f.name
-                    break
-            if campo_nota:
-                return model, campo_est, campo_nota
-    return None, None, None
-
-
 def _calcular_7_insumos_curso(curso):
     """
-    Devuelve un diccionario {nombre_normalizado: [materia, deberes, talleres, act_clase, lecc_pizarra, eis, eval_online]}
-    con los valores redondeados a 2 decimales.
+    Calcula exactamente los 7 insumos oficiales del Panel Docente:
+    [materia, deberes, talleres, act_clase, lecc_pizarra, eis, eval_online]
     """
     estudiantes = sorted(
         EstudiantePerfil.objects.filter(curso=curso),
@@ -63,22 +40,29 @@ def _calcular_7_insumos_curso(curso):
     )
     est_ids = [e.id for e in estudiantes]
 
-    # 1. Tareas (Materia, Deberes, Talleres)
-    notas_tareas = {eid: {"materia": [], "deber": [], "taller": []} for eid in est_ids}
+    # 1. Tareas (MATERIA, DEBER, TALLER)
+    notas_tareas = {eid: {"MATERIA": [], "DEBER": [], "TALLER": []} for eid in est_ids}
     entregas = EntregaTarea.objects.select_related("tarea").filter(estudiante_id__in=est_ids)
     for ent in entregas:
-        tipo = (ent.tarea.tipo_tarea or "").strip().lower()
+        tipo = (ent.tarea.tipo_tarea or "").strip().upper()
         if tipo in notas_tareas and ent.nota_calculada is not None:
             notas_tareas[ent.estudiante_id][tipo].append(float(ent.nota_calculada))
 
-    # 2. Asistencia -> Actuación en clase
-    conteo_asist = {eid: {"asistidas": 0, "total": 0} for eid in est_ids}
+    # 2. Asistencia ponderada -> Actuación en clase
+    PESOS_ASISTENCIA = {
+        "P": 1.0,
+        "J": 0.9,
+        "A": 0.7,
+        "F": 0.0,
+        "FG": 0.0,
+        "FUGA": 0.0,
+    }
+    conteo_asist = {eid: [0.0, 0] for eid in est_ids}
     for reg in RegistroAsistencia.objects.filter(estudiante_id__in=est_ids):
         est_estado = (reg.estado or "").strip().upper()
-        if est_estado in ("P", "F", "A", "J"):
-            conteo_asist[reg.estudiante_id]["total"] += 1
-            if est_estado in ("P", "A", "J"):
-                conteo_asist[reg.estudiante_id]["asistidas"] += 1
+        if est_estado in PESOS_ASISTENCIA:
+            conteo_asist[reg.estudiante_id][1] += 1
+            conteo_asist[reg.estudiante_id][0] += PESOS_ASISTENCIA[est_estado]
 
     # 3. Lección / Pizarra
     notas_pizarra = {eid: [] for eid in est_ids}
@@ -86,20 +70,28 @@ def _calcular_7_insumos_curso(curso):
         if reg.nota_cuanti is not None:
             notas_pizarra[reg.estudiante_id].append(float(reg.nota_cuanti))
 
-    # 4. EIS (Módulos Interactivos IA)
-    notas_eis = {eid: [] for eid in est_ids}
-    modelo_eis, campo_est_eis, campo_nota_eis = _detectar_modelo_eis()
-    if modelo_eis:
-        filtro = {f"{campo_est_eis}_id__in": est_ids}
-        for reg in modelo_eis.objects.filter(**filtro):
-            eid = getattr(reg, f"{campo_est_eis}_id")
-            val = getattr(reg, campo_nota_eis, None)
-            if val is not None:
-                notas_eis[eid].append(float(val))
+    # 4. EIS (Módulo trimestral único)
+    filtro_eis = (
+        Q(evaluacion__titulo__startswith="[EIS]")
+        | Q(evaluacion__titulo__startswith="[Módulo IA]")
+        | Q(evaluacion__titulo__startswith="[Modulo IA]")
+        | Q(evaluacion__titulo__icontains="(EIS)")
+    )
+    eis_map = {}
+    for reg in (
+        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
+        .filter(filtro_eis)
+        .order_by("fecha_registro", "id")
+    ):
+        if reg.nota_obtenida is not None:
+            eis_map[reg.estudiante_id] = float(reg.nota_obtenida)
 
-    # 5. Evaluación Online
+    # 5. Evaluación Online (todas las demás evaluaciones)
     notas_eval = {eid: [] for eid in est_ids}
-    for reg in ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids):
+    for reg in (
+        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
+        .exclude(filtro_eis)
+    ):
         if reg.nota_obtenida is not None:
             notas_eval[reg.estudiante_id].append(float(reg.nota_obtenida))
 
@@ -109,16 +101,15 @@ def _calcular_7_insumos_curso(curso):
     resultado = {}
     for est in estudiantes:
         eid = est.id
-        mat = _prom(notas_tareas[eid]["materia"])
-        deb = _prom(notas_tareas[eid]["deber"])
-        tal = _prom(notas_tareas[eid]["taller"])
+        mat = _prom(notas_tareas[eid]["MATERIA"])
+        deb = _prom(notas_tareas[eid]["DEBER"])
+        tal = _prom(notas_tareas[eid]["TALLER"])
 
-        tot_a = conteo_asist[eid]["total"]
-        asi_a = conteo_asist[eid]["asistidas"]
-        act = round((asi_a / tot_a) * 10.0, 2) if tot_a > 0 else 0.0
+        pts_a, tot_a = conteo_asist[eid]
+        act = round((pts_a / tot_a) * 10.0, 2) if tot_a > 0 else 0.0
 
         piz = _prom(notas_pizarra[eid])
-        eis = _prom(notas_eis[eid])
+        eis = round(eis_map.get(eid, 0.0), 2)
         evl = _prom(notas_eval[eid])
 
         resultado[_normalizar_texto(est.nombre_completo)] = [
@@ -135,7 +126,6 @@ def _calcular_7_insumos_curso(curso):
 
 
 def _detectar_curso_desde_hoja(ws):
-    """Cruza los nombres de B10:B49 del Excel con los cursos de la base de datos para detectar el curso exacto."""
     nombres_excel = set()
     for r in range(10, 50):
         val = ws.cell(row=r, column=2).value
@@ -198,7 +188,6 @@ def exportar_plantilla_xlsm(request):
     if curso:
         mapa_notas = _calcular_7_insumos_curso(curso)
 
-        # Recorre filas 10 a 49 (nómina oficial) y escribe SOLO columnas F (6) a L (12)
         for fila in range(10, 50):
             celda_nombre = ws.cell(row=fila, column=2).value
             if not celda_nombre:
@@ -212,7 +201,7 @@ def exportar_plantilla_xlsm(request):
             if omitir_sin_notas and all(v == 0.0 for v in insumos):
                 continue
 
-            for idx_col, valor in enumerate(insumos, start=6):  # Columnas 6=F hasta 12=L
+            for idx_col, valor in enumerate(insumos, start=6):
                 ws.cell(row=fila, column=idx_col).value = valor
 
     buffer = io.BytesIO()

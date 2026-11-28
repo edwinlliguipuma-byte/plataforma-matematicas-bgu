@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -7,48 +7,81 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-    <div class="max-w-5xl mx-auto px-4 py-8">
-        <div class="flex flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border border-blue-800/50 rounded-2xl p-6 mb-8 shadow-xl">
+    <div class="max-w-5xl mx-auto px-4 py-7">
+
+        <!-- CABECERA -->
+        <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border border-blue-800/60 rounded-2xl p-6 mb-6 shadow-2xl flex flex-wrap items-center justify-between gap-4">
             <div>
-                <p class="text-xs font-bold tracking-widest text-amber-400 uppercase">Unidad Educativa Técnica "Dr. Enrique Noboa" • La Troncal</p>
-                <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1">✨ Generador de Infografía, Deber y Evaluación con IA</h1>
-                <p class="text-slate-300 text-sm mt-1">Crea en segundos el módulo completo en 4 pasos desde una destreza o subiendo fotos del texto.</p>
+                <p class="text-xs font-extrabold tracking-widest text-amber-400 uppercase">Unidad Educativa Técnica "Dr. Enrique Noboa" • La Troncal</p>
+                <h1 class="text-2xl md:text-3xl font-black text-white mt-1">✨ Generador de Infografía, Deber y Evaluación con IA</h1>
+                <p class="text-slate-300 text-sm mt-1">Crea en un solo lugar el módulo interactivo conectado automáticamente con el Aula Virtual del estudiante y tu Sábana Docente.</p>
             </div>
-            <a href="/docente/" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold border border-slate-700">← Volver al Panel</a>
+            <div class="flex gap-2">
+                <a href="/admin/cursos/modulointeractivo/" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-xl text-xs md:text-sm transition">📚 Ver / Editar Módulos</a>
+                <a href="/docente/" class="bg-blue-700 hover:bg-blue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs md:text-sm shadow transition">← Volver al Panel</a>
+            </div>
         </div>
 
         {% if error_msg %}
-        <div class="bg-red-950/80 border border-red-500 text-red-200 px-5 py-4 rounded-xl mb-6 font-medium">
+        <div class="bg-red-950/90 border border-red-700 text-red-200 rounded-2xl p-4 mb-6 text-sm font-semibold">
             ⚠️ {{ error_msg }}
         </div>
         {% endif %}
 
-        <form method="POST" enctype="multipart/form-data" onsubmit="document.getElementById('btn-generar').innerText='⏳ Generando Infografía, 6 Ejercicios, 10 Deberes y 20 Preguntas...'; document.getElementById('btn-generar').disabled=true;" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
+        <!-- FORMULARIO UNIFICADO -->
+        <form method="POST" enctype="multipart/form-data" onsubmit="mostrarCargandoIA()" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
             {% csrf_token %}
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Tema del Módulo *</label>
-                    <input type="text" name="titulo" required placeholder="Ej: Sucesiones Numéricas Reales" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Asignatura *</label>
-                    <input type="text" name="asignatura" value="Matemática" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none">
+            <!-- SELECTOR PRINCIPAL: EIS vs EVALUACIÓN ONLINE -->
+            <div class="bg-slate-950/90 border border-indigo-700/60 rounded-2xl p-4">
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-amber-400 mb-2">
+                    1. ¿A qué columna de tu Sábana y Excel (.xlsm) irá la calificación de este módulo? *
+                </label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label class="flex items-start gap-3 p-3.5 rounded-xl border border-indigo-600 bg-indigo-950/50 cursor-pointer hover:bg-indigo-900/40 transition">
+                        <input type="radio" name="destino_sabana" value="EVALUACION" checked class="mt-1 text-indigo-500">
+                        <div>
+                            <p class="font-extrabold text-sm text-white">📝 Evaluación Online (Matemática)</p>
+                            <p class="text-xs text-slate-300 mt-0.5">Se conecta automático al Aula Virtual y promedia directo en la columna <strong>Evaluación Online</strong> (Columna <strong>L</strong> del Excel).</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 p-3.5 rounded-xl border border-purple-600 bg-purple-950/40 cursor-pointer hover:bg-purple-900/30 transition">
+                        <input type="radio" name="destino_sabana" value="EIS" class="mt-1 text-purple-500">
+                        <div>
+                            <p class="font-extrabold text-sm text-white">🧬 Módulo EIS (1 vez por trimestre)</p>
+                            <p class="text-xs text-slate-300 mt-0.5">La nota del estudiante va <strong>directo y exclusivamente</strong> a la columna <strong>EIS</strong> de la Sábana (Columna <strong>K</strong> del Excel).</p>
+                        </div>
+                    </label>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Curso *</label>
-                    <select name="curso_id" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none">
-                <option value="">-- Seleccione Curso --</option>
-                <option value="2DO_BGU">2DO DE BGU</option>
-                <option value="3ERO_BGU">3ERO DE BGU</option>
-              </select>
+            <!-- TEMA Y ASIGNATURA -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Tema del Módulo *</label>
+                    <input type="text" name="titulo" required placeholder="Ej: Sucesiones Numéricas Reales" class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Figura Profesional</label>
-                    <select name="especialidad" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white">
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Asignatura *</label>
+                    <input type="text" name="asignatura" value="Matemática" required class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-4 py-2.5 text-sm text-white">
+                </div>
+            </div>
+
+            <!-- CURSO, FIGURA PROFESIONAL Y PARALELO -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Curso *</label>
+                    <select name="curso_id" id="selectCursoIA" required onchange="autocompletarEspPar()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                        <option value="">-- Seleccione Curso --</option>
+                        {% for c in cursos %}
+                        <option value="{{ c.id }}" data-nombre="{{ c.nombre }}">{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Figura Profesional</label>
+                    <select name="especialidad" id="selectEspIA" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
                         <option value="Informática">Informática</option>
                         <option value="Contabilidad">Contabilidad</option>
                         <option value="Ventas">Ventas</option>
@@ -57,8 +90,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Paralelo</label>
-                    <select name="paralelo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white">
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Paralelo</label>
+                    <select name="paralelo" id="selectParIA" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
                         <option value="A">Paralelo A</option>
                         <option value="B">Paralelo B</option>
                         <option value="C">Paralelo C</option>
@@ -66,65 +99,68 @@
                 </div>
             </div>
 
+            <!-- REPLICAR A TODO EL NIVEL -->
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5">
+                <input type="hidden" name="aplicar_todos_nivel_presente" value="1">
+                <label class="flex items-center gap-2.5 text-xs md:text-sm text-slate-200 cursor-pointer">
+                    <input type="checkbox" name="aplicar_todos_nivel" value="1" checked class="rounded border-slate-600 bg-slate-900 text-blue-500">
+                    <span>Crear automáticamente para <strong>todos los paralelos del mismo nivel</strong> (ej. todos los 2dos BGU o todos los 3ros BGU)</span>
+                </label>
+            </div>
+
+            <!-- DESTREZA -->
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Destreza con Criterio de Desempeño e Indicadores (Opcional)</label>
-                <textarea name="destreza_indicadores" rows="3" placeholder="Pega aquí la destreza, indicadores de logro o subtemas específicos que deseas que evalúe la IA..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none"></textarea>
+                <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Destreza con Criterio de Desempeño e Indicadores (Opcional)</label>
+                <textarea name="destreza_indicadores" rows="3" placeholder="Pega aquí la destreza, indicadores de logro o subtemas específicos que deseas que evalúe la IA..." class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-4 py-2.5 text-sm text-white"></textarea>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div class="bg-slate-950 border border-dashed border-blue-500/60 rounded-xl p-4">
-                    <label class="block text-xs font-bold uppercase text-blue-400 mb-1">📸 Fotos del Texto o Guía Escolar (Opcional, hasta 3 fotos)</label>
-                    <p class="text-xs text-slate-400 mb-3">Si subes fotos del libro, la IA extraerá sus conceptos y ejercicios automáticamente.</p>
-                    <input type="file" name="fotos_texto" accept="image/*" multiple class="text-sm text-slate-300">
+            <!-- TIEMPO, TAREA VINCULADA Y FOTOS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Tiempo Evaluación (min)</label>
+                    <input type="number" name="tiempo_minutos" value="30" min="5" max="120" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
-
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Vincular entrega de cuaderno (Opcional)</label>
-                        <select name="tarea_id" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-                            <option value="">-- Ninguna por ahora --</option>
-                            {% for t in tareas %}
-                            <option value="{{ t.id }}">[{{ t.get_tipo_tarea_display }}] {{ t.titulo }} ({{ t.curso.nombre }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Tiempo Evaluación (minutos)</label>
-                        <input type="number" name="tiempo_minutos" value="30" min="10" max="90" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Vincular Deber (Opcional)</label>
+                    <select name="tarea_id" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                        <option value="">-- Ninguno --</option>
+                        {% for t in tareas %}
+                        <option value="{{ t.id }}">{{ t.titulo }} ({{ t.curso.nombre }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1.5">Fotos del Texto (Opcional, máx. 3)</label>
+                    <input type="file" name="fotos_texto" multiple accept="image/*" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:font-bold">
                 </div>
             </div>
 
-            <input type="hidden" name="institucion" value='UNIDAD EDUCATIVA TÉCNICA "DR. ENRIQUE NOBOA" • LA TRONCAL'>
-
-            
-    <!-- REPLICACION_NIVEL_CHECKBOX -->
-    <div style="margin: 14px 0; padding: 12px 14px; background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(59, 130, 246, 0.45); border-radius: 10px;">
-      <input type="hidden" name="aplicar_todos_nivel_presente" value="1">
-      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; margin: 0;">
-        <input type="checkbox" name="aplicar_todos_nivel" value="1" checked style="width: 18px; height: 18px; accent-color: #2563eb;">
-        <span>Aplicar automáticamente a todos los cursos y paralelos del mismo nivel (todos los 2dos o todos los 3ros)</span>
-      </label>
-    </div>
-    
-<button id="btn-generar" type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-4 rounded-xl text-lg shadow-lg transition">
-                ✨ Generar Módulo Completo con Inteligencia Artificial
-            </button>
+            <div class="pt-2 flex justify-end">
+                <button type="submit" id="btnGenerarIA" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-black px-6 py-3 rounded-xl text-sm shadow-xl transition cursor-pointer">
+                    🚀 Generar Módulo Completo y Conectar al Aula Virtual
+                </button>
+            </div>
         </form>
 
+        <!-- MÓDULOS RECIENTES -->
         {% if modulos_recientes %}
-        <div class="mt-10">
-            <h2 class="text-lg font-bold text-white mb-4">📚 Módulos Creados Recientemente</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mt-6">
+            <h2 class="text-sm font-extrabold uppercase tracking-wider text-slate-300 mb-3">📚 Últimos Módulos Generados</h2>
+            <div class="divide-y divide-slate-800">
                 {% for m in modulos_recientes %}
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-3">
+                <div class="py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div>
-                        <span class="text-xs font-bold text-blue-400">{{ m.curso.nombre }} • {{ m.especialidad }}</span>
-                        <h3 class="font-bold text-white">{{ m.titulo }}</h3>
+                        {% if m.es_eis %}
+                        <span class="px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700 font-bold mr-1.5">🧬 EIS</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold mr-1.5">📝 Eval. Online</span>
+                        {% endif %}
+                        <strong class="text-white">{{ m.titulo }}</strong>
+                        <span class="text-slate-400 ml-1">• {{ m.curso.nombre }}</span>
                     </div>
                     <div class="flex gap-2">
-                        <a href="{% url 'ver_modulo_interactivo' m.id %}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-lg">Abrir</a>
-                        <button type="button" onclick="navigator.clipboard.writeText(window.location.origin + '{% url 'ver_modulo_interactivo' m.id %}'); this.innerText='¡Copiado!';" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-3 py-2 rounded-lg">Copiar Link</button>
+                        <a href="{% url 'ver_modulo_interactivo' m.id %}" target="_blank" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-2.5 py-1 rounded-lg">Abrir Vista Alumno</a>
+                        <a href="/admin/cursos/modulointeractivo/{{ m.id }}/change/" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-2.5 py-1 rounded-lg">Editar</a>
                     </div>
                 </div>
                 {% endfor %}
@@ -132,5 +168,33 @@
         </div>
         {% endif %}
     </div>
+
+    <script>
+        function autocompletarEspPar() {
+            const sel = document.getElementById('selectCursoIA');
+            const opt = sel.options[sel.selectedIndex];
+            const nom = (opt ? opt.getAttribute('data-nombre') || '' : '').toLowerCase();
+            const espSel = document.getElementById('selectEspIA');
+            const parSel = document.getElementById('selectParIA');
+
+            if (nom.includes('contab')) espSel.value = 'Contabilidad';
+            else if (nom.includes('inform')) espSel.value = 'Informática';
+            else if (nom.includes('venta')) espSel.value = 'Ventas';
+            else if (nom.includes('agrop')) espSel.value = 'Agropecuaria';
+            else if (nom) espSel.value = 'Tronco Común / BGU';
+
+            if (nom.includes("'b'") || nom.includes('"b"') || nom.endsWith(' b')) parSel.value = 'B';
+            else if (nom.includes("'c'") || nom.includes('"c"') || nom.endsWith(' c')) parSel.value = 'C';
+            else parSel.value = 'A';
+        }
+
+        function mostrarCargandoIA() {
+            const btn = document.getElementById('btnGenerarIA');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = '⏳ Generando guía y evaluación con IA (15-25 seg)...';
+            }
+        }
+    </script>
 </body>
 </html>

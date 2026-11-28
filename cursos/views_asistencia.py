@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import json
 import unicodedata
 from datetime import datetime
@@ -8,16 +8,6 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from .models import CursoBGU, EstudiantePerfil, RegistroAsistencia, RegistroPizarra
-
-PESOS_ASISTENCIA = {
-    "P": 1.0,
-    "J": 0.9,
-    "A": 0.7,
-    "F": 0.0,
-    "FG": 0.0,
-}
-
-NOTAS_PIZARRA_VALIDAS = {10, 9, 8, 7, 6, 5, 4, 2}
 
 
 def _clave_orden(est):
@@ -33,7 +23,7 @@ def app_asistencia_offline(request):
     cursos_data = []
     for c in cursos:
         estudiantes = sorted(
-            EstudiantePerfil.objects.filter(curso=c),
+            EstudiantePerfil.objects.filter(curso=c, retirado=False),
             key=_clave_orden,
         )
         cursos_data.append({
@@ -44,7 +34,6 @@ def app_asistencia_offline(request):
                     "id": e.id,
                     "nombre": e.nombre_completo,
                     "cedula": e.cedula,
-                    "retirado": bool(e.retirado),
                 }
                 for e in estudiantes
             ],
@@ -58,7 +47,7 @@ def app_asistencia_offline(request):
 
 def service_worker_asistencia(request):
     sw_code = """
-const CACHE_NAME = 'asistencia-bgu-v7';
+const CACHE_NAME = 'asistencia-bgu-v6';
 const URLS_TO_CACHE = ['/docente/asistencia-offline/'];
 
 self.addEventListener('install', event => {
@@ -92,6 +81,19 @@ self.addEventListener('fetch', event => {
     return HttpResponse(sw_code, content_type="application/javascript")
 
 
+def _codigo_cuali_desde_nota(nota_num):
+    entero = int(round(nota_num))
+    if abs(nota_num - entero) < 0.01 and str(entero) in ("10", "9", "8", "7", "6", "5", "2"):
+        return str(entero)
+    if nota_num >= 9.0:
+        return "EP"
+    if nota_num >= 7.5:
+        return "BP"
+    if nota_num >= 5.5:
+        return "DP"
+    return "NP"
+
+
 @csrf_exempt
 def api_sincronizar_asistencia(request):
     if request.method != "POST":
@@ -102,10 +104,6 @@ def api_sincronizar_asistencia(request):
         asistencias = data.get("asistencias", [])
         pizarras = data.get("pizarras", [])
 
-        retirados_ids = set(
-            EstudiantePerfil.objects.filter(retirado=True).values_list("id", flat=True)
-        )
-
         total_asist = 0
         total_piz = 0
 
@@ -113,7 +111,7 @@ def api_sincronizar_asistencia(request):
             est_id = item.get("estudiante_id")
             fecha_str = item.get("fecha")
             estado = (item.get("estado") or "").strip().upper()
-            if est_id and int(est_id) not in retirados_ids and fecha_str and estado in PESOS_ASISTENCIA:
+            if est_id and fecha_str and estado in ("P", "F", "A", "J", "FG"):
                 fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
                 RegistroAsistencia.objects.update_or_create(
                     estudiante_id=int(est_id),
@@ -125,26 +123,33 @@ def api_sincronizar_asistencia(request):
         for item in pizarras:
             est_id = item.get("estudiante_id")
             fecha_str = item.get("fecha")
+            notas_lista = item.get("notas")
             nota_raw = item.get("nota_cuanti")
-            if est_id and int(est_id) not in retirados_ids and fecha_str and nota_raw is not None:
-                nota_num = float(nota_raw)
-                nota_int = int(round(nota_num))
-                if nota_int in NOTAS_PIZARRA_VALIDAS:
-                    fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
-                    codigo = "NP" if nota_int == 4 else str(nota_int)
-                    RegistroPizarra.objects.update_or_create(
-                        estudiante_id=int(est_id),
-                        fecha=fecha_obj,
-                        defaults={
-                            "codigo_cuali": codigo,
-                            "nota_cuanti": Decimal(f"{nota_num:.2f}"),
-                        },
-                    )
-                    total_piz += 1
+
+            nota_num = None
+            if isinstance(notas_lista, list) and len(notas_lista) > 0:
+                validas = [float(n) for n in notas_lista if n is not None]
+                if validas:
+                    nota_num = round(sum(validas) / len(validas), 2)
+            elif nota_raw is not None:
+                nota_num = round(float(nota_raw), 2)
+
+            if est_id and fecha_str and nota_num is not None:
+                nota_num = max(0.0, min(10.0, nota_num))
+                fecha_obj = datetime.strptime(fecha_str[:10], "%Y-%m-%d").date()
+                RegistroPizarra.objects.update_or_create(
+                    estudiante_id=int(est_id),
+                    fecha=fecha_obj,
+                    defaults={
+                        "codigo_cuali": _codigo_cuali_desde_nota(nota_num),
+                        "nota_cuanti": Decimal(f"{nota_num:.2f}"),
+                    },
+                )
+                total_piz += 1
 
         return JsonResponse({
             "ok": True,
-            "mensaje": f"Sincronizado correctamente: {total_asist} asistencias y {total_piz} notas de pizarra.",
+            "mensaje": f"Sincronizado correctamente: {total_asist} asistencias y {total_piz} promedios de pizarra.",
         })
     except Exception as e:
         return JsonResponse({"ok": False, "mensaje": f"Error al sincronizar: {str(e)}"}, status=400)
@@ -174,7 +179,6 @@ def sabana_asistencia_pizarra(request):
             key=_clave_orden,
         )
 
-        # 1. TABLA HORIZONTAL DE ASISTENCIA + PORCENTAJE TRIMESTRAL PONDERADO
         fechas_asistencia = list(
             RegistroAsistencia.objects.filter(estudiante__curso=curso_actual)
             .values_list("fecha", flat=True)
@@ -187,40 +191,33 @@ def sabana_asistencia_pizarra(request):
         porcentajes_curso = []
         for idx, est in enumerate(estudiantes, start=1):
             celdas = []
-            cnt_p = cnt_f = cnt_a = cnt_j = cnt_fg = 0
-            puntos_asist = 0.0
+            cnt_p = cnt_f = cnt_a = cnt_j = 0
             for f in fechas_asistencia:
                 est_val = mapa_asist.get((est.id, f), "-")
                 celdas.append(est_val)
                 if est_val == "P":
                     cnt_p += 1
-                    puntos_asist += 1.0
                 elif est_val == "F":
                     cnt_f += 1
                 elif est_val == "A":
                     cnt_a += 1
-                    puntos_asist += 0.7
                 elif est_val == "J":
                     cnt_j += 1
-                    puntos_asist += 0.9
-                elif est_val == "FG":
-                    cnt_fg += 1
 
-            marcadas = cnt_p + cnt_f + cnt_a + cnt_j + cnt_fg
-            porcentaje = round((puntos_asist / marcadas) * 100, 1) if marcadas > 0 else 0.0
-            if marcadas > 0 and not est.retirado:
+            marcadas = cnt_p + cnt_f + cnt_a + cnt_j
+            asistidas = cnt_p + cnt_a + cnt_j
+            porcentaje = round((asistidas / marcadas) * 100, 1) if marcadas > 0 else 0.0
+            if marcadas > 0:
                 porcentajes_curso.append(porcentaje)
 
             filas_asistencia.append({
                 "num": idx,
                 "estudiante": est,
-                "retirado": bool(est.retirado),
                 "celdas": celdas,
                 "cnt_p": cnt_p,
                 "cnt_f": cnt_f,
                 "cnt_a": cnt_a,
                 "cnt_j": cnt_j,
-                "cnt_fg": cnt_fg,
                 "marcadas": marcadas,
                 "porcentaje": porcentaje,
             })
@@ -228,7 +225,6 @@ def sabana_asistencia_pizarra(request):
         if porcentajes_curso:
             promedio_general_asistencia = round(sum(porcentajes_curso) / len(porcentajes_curso), 1)
 
-        # 2. TABLA HORIZONTAL DE PIZARRA + PROMEDIO TRIMESTRAL
         fechas_pizarra = list(
             RegistroPizarra.objects.filter(estudiante__curso=curso_actual)
             .values_list("fecha", flat=True)
@@ -253,13 +249,12 @@ def sabana_asistencia_pizarra(request):
 
             tiene_notas = len(notas) > 0
             promedio = round(sum(notas) / len(notas), 2) if tiene_notas else 0.0
-            if tiene_notas and not est.retirado:
+            if tiene_notas:
                 promedios_curso.append(promedio)
 
             filas_pizarra.append({
                 "num": idx,
                 "estudiante": est,
-                "retirado": bool(est.retirado),
                 "celdas": celdas,
                 "cantidad_notas": len(notas),
                 "tiene_notas": tiene_notas,
@@ -316,56 +311,42 @@ def exportar_sabana_csv(request):
 
     if tipo == "asistencia":
         encabezado = (
-            ["N°", "Apellidos y Nombres", "Cédula", "Estado"]
+            ["N°", "Apellidos y Nombres", "Cédula"]
             + [f.strftime("%d/%m/%Y") for f in fechas_asist]
-            + ["P", "F", "A", "J", "FG", "% Asistencia Trimestral", "Nota Actuación (/10)"]
+            + ["P", "F", "A", "J", "% Asistencia Trimestral"]
         )
         writer.writerow(encabezado)
 
         for idx, est in enumerate(estudiantes, start=1):
-            fila = [idx, est.nombre_completo, est.cedula, "RETIRADO" if est.retirado else "ACTIVO"]
-            cnt_p = cnt_f = cnt_a = cnt_j = cnt_fg = 0
-            puntos_asist = 0.0
+            fila = [idx, est.nombre_completo, est.cedula]
+            cnt_p = cnt_f = cnt_a = cnt_j = 0
             for f in fechas_asist:
                 val = mapa_asist.get((est.id, f), "-")
                 fila.append(val)
                 if val == "P":
                     cnt_p += 1
-                    puntos_asist += 1.0
                 elif val == "F":
                     cnt_f += 1
                 elif val == "A":
                     cnt_a += 1
-                    puntos_asist += 0.7
                 elif val == "J":
                     cnt_j += 1
-                    puntos_asist += 0.9
-                elif val == "FG":
-                    cnt_fg += 1
-            marcadas = cnt_p + cnt_f + cnt_a + cnt_j + cnt_fg
-            pct = round((puntos_asist / marcadas) * 100, 1) if marcadas > 0 else 0.0
-            nota_10 = round((puntos_asist / marcadas) * 10, 2) if marcadas > 0 else 0.0
-            fila.extend([
-                cnt_p,
-                cnt_f,
-                cnt_a,
-                cnt_j,
-                cnt_fg,
-                f"{pct}%".replace(".", ","),
-                f"{nota_10:.2f}".replace(".", ","),
-            ])
+            marcadas = cnt_p + cnt_f + cnt_a + cnt_j
+            asistidas = cnt_p + cnt_a + cnt_j
+            pct = round((asistidas / marcadas) * 100, 1) if marcadas > 0 else 0.0
+            fila.extend([cnt_p, cnt_f, cnt_a, cnt_j, f"{pct}%".replace(".", ",")])
             writer.writerow(fila)
 
     elif tipo == "pizarra":
         encabezado = (
-            ["N°", "Apellidos y Nombres", "Cédula", "Estado"]
+            ["N°", "Apellidos y Nombres", "Cédula"]
             + [f.strftime("%d/%m/%Y") for f in fechas_piz]
             + ["N° Lecciones", "Promedio Pizarra Trimestral"]
         )
         writer.writerow(encabezado)
 
         for idx, est in enumerate(estudiantes, start=1):
-            fila = [idx, est.nombre_completo, est.cedula, "RETIRADO" if est.retirado else "ACTIVO"]
+            fila = [idx, est.nombre_completo, est.cedula]
             notas = []
             for f in fechas_piz:
                 if (est.id, f) in mapa_piz:
@@ -383,40 +364,31 @@ def exportar_sabana_csv(request):
             "N°",
             "Apellidos y Nombres",
             "Cédula",
-            "Estado",
             "Presentes (P)",
             "Faltas (F)",
             "Atrasos (A)",
             "Justificadas (J)",
-            "Fugas (FG)",
             "% Asistencia Trimestral",
-            "Nota Actuación (/10)",
             "N° Pizarras",
             "Promedio Pizarra Trimestral",
         ]
         writer.writerow(encabezado)
 
         for idx, est in enumerate(estudiantes, start=1):
-            cnt_p = cnt_f = cnt_a = cnt_j = cnt_fg = 0
-            puntos_asist = 0.0
+            cnt_p = cnt_f = cnt_a = cnt_j = 0
             for f in fechas_asist:
                 val = mapa_asist.get((est.id, f))
                 if val == "P":
                     cnt_p += 1
-                    puntos_asist += 1.0
                 elif val == "F":
                     cnt_f += 1
                 elif val == "A":
                     cnt_a += 1
-                    puntos_asist += 0.7
                 elif val == "J":
                     cnt_j += 1
-                    puntos_asist += 0.9
-                elif val == "FG":
-                    cnt_fg += 1
-            marcadas = cnt_p + cnt_f + cnt_a + cnt_j + cnt_fg
-            pct = round((puntos_asist / marcadas) * 100, 1) if marcadas > 0 else 0.0
-            nota_10 = round((puntos_asist / marcadas) * 10, 2) if marcadas > 0 else 0.0
+            marcadas = cnt_p + cnt_f + cnt_a + cnt_j
+            asistidas = cnt_p + cnt_a + cnt_j
+            pct = round((asistidas / marcadas) * 100, 1) if marcadas > 0 else 0.0
 
             notas = [mapa_piz[(est.id, f)] for f in fechas_piz if (est.id, f) in mapa_piz]
             prom = round(sum(notas) / len(notas), 2) if notas else 0.0
@@ -425,14 +397,11 @@ def exportar_sabana_csv(request):
                 idx,
                 est.nombre_completo,
                 est.cedula,
-                "RETIRADO" if est.retirado else "ACTIVO",
                 cnt_p,
                 cnt_f,
                 cnt_a,
                 cnt_j,
-                cnt_fg,
                 f"{pct}%".replace(".", ","),
-                f"{nota_10:.2f}".replace(".", ","),
                 len(notas),
                 f"{prom:.2f}".replace(".", ",") if notas else "-",
             ])

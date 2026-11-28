@@ -1,4 +1,4 @@
-import re
+﻿import re
 import os
 import io
 import csv
@@ -15,7 +15,7 @@ from PIL import Image
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
 
@@ -112,6 +112,11 @@ def _formatear_whatsapp_ec(telefono):
     if limpio.startswith("593"):
         return limpio
     return limpio
+
+
+def _es_titulo_eis(titulo):
+    t = (titulo or "").strip().upper()
+    return t.startswith("[EIS]") or t.startswith("[MÓDULO IA]") or t.startswith("[MODULO IA]") or "(EIS)" in t
 
 
 def _gemini_url(k):
@@ -239,12 +244,17 @@ def panel_docente_institucional(request):
     ):
         prom_entregas[row["estudiante_id"]][row["tarea__tipo_tarea"]] = float(row["p"] or 0)
 
+    filtro_eis = (
+        Q(evaluacion__titulo__startswith="[EIS]")
+        | Q(evaluacion__titulo__startswith="[Módulo IA]")
+        | Q(evaluacion__titulo__startswith="[Modulo IA]")
+        | Q(evaluacion__titulo__icontains="(EIS)")
+    )
+
     eis_nota_unica_map = {}
     for row in (
-        ResultadoEvaluacion.objects.filter(
-            estudiante_id__in=est_ids,
-            evaluacion__titulo__startswith="[Módulo IA]",
-        )
+        ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
+        .filter(filtro_eis)
         .order_by("fecha_registro", "id")
         .values("estudiante_id", "nota_obtenida")
     ):
@@ -253,7 +263,7 @@ def panel_docente_institucional(request):
     prom_evals_online_map = {}
     for row in (
         ResultadoEvaluacion.objects.filter(estudiante_id__in=est_ids)
-        .exclude(evaluacion__titulo__startswith="[Módulo IA]")
+        .exclude(filtro_eis)
         .values("estudiante_id")
         .annotate(p=Avg("nota_obtenida"))
     ):
@@ -416,7 +426,11 @@ def panel_docente_institucional(request):
 def crear_modulo_ia(request):
     cursos = CursoBGU.objects.all().order_by("nombre")
     tareas = Tarea.objects.all().order_by("-id")[:30]
-    modulos_recientes = ModuloInteractivo.objects.all()[:10]
+    modulos_recientes = list(ModuloInteractivo.objects.select_related("curso", "evaluacion_vinculada")[:12])
+    for m in modulos_recientes:
+        tit_ev = m.evaluacion_vinculada.titulo if m.evaluacion_vinculada else m.titulo
+        m.es_eis = _es_titulo_eis(tit_ev)
+
     error_msg = None
 
     if request.method == "POST":
@@ -451,6 +465,7 @@ def crear_modulo_ia(request):
                 _post_mut["curso"] = str(_elegido.id)
                 _post_mut["curso_id"] = str(_elegido.id)
                 request.POST = _post_mut
+
         titulo = request.POST.get("titulo", "").strip()
         asignatura = request.POST.get("asignatura", "Matemática").strip()
         institucion = request.POST.get(
@@ -462,6 +477,8 @@ def crear_modulo_ia(request):
         destreza = request.POST.get("destreza_indicadores", "").strip()
         tiempo_minutos = int(request.POST.get("tiempo_minutos") or 30)
         tarea_id = request.POST.get("tarea_id") or None
+        destino_sabana = (request.POST.get("destino_sabana") or "EVALUACION").strip().upper()
+        es_eis = (destino_sabana == "EIS")
         fotos = request.FILES.getlist("fotos_texto")
 
         api_key = os.environ.get("GEMINI_API_KEY", "").strip()
@@ -582,8 +599,13 @@ REGLAS:
                     "evaluacion_20": res_2.get("evaluacion_20", []),
                 }
 
+                # Prefijo que dirige automáticamente la calificación a EIS o a Evaluación Online
+                # y mantiene la conexión directa con /aula/ (Portal del Estudiante)
+                prefijo_eval = "[EIS]" if es_eis else "[Evaluación IA]"
+                titulo_eval_vinculada = f"{prefijo_eval} {titulo}"
+
                 evaluacion = Evaluacion.objects.create(
-                    titulo=f"[Módulo IA] {titulo}",
+                    titulo=titulo_eval_vinculada,
                     curso=curso,
                 )
                 tarea_obj = Tarea.objects.filter(id=tarea_id).first() if tarea_id else None
