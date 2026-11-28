@@ -72,7 +72,6 @@
                         <th class="py-3.5 px-3">#</th>
                         <th class="py-3.5 px-3">Cédula</th>
                         <th class="py-3.5 px-3">Apellidos y Nombres</th>
-                        <th class="py-3.5 px-3">Curso</th>
                         <th class="py-3.5 px-3 text-center">Materia</th>
                         <th class="py-3.5 px-3 text-center">Deberes</th>
                         <th class="py-3.5 px-3 text-center">Talleres</th>
@@ -86,11 +85,17 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800">
                     {% for f in filas %}
+                    {% ifchanged f.estudiante.curso.nombre %}
+                    <tr class="bg-indigo-950/70 border-y border-indigo-800/60">
+                        <td colspan="12" class="py-2.5 px-4 text-xs font-extrabold uppercase tracking-wider text-indigo-200">
+                            📚 CURSO: {{ f.estudiante.curso.nombre }}
+                        </td>
+                    </tr>
+                    {% endifchanged %}
                     <tr class="hover:bg-slate-800/40">
                         <td class="py-3 px-3 text-slate-500">{{ forloop.counter }}</td>
                         <td class="py-3 px-3 font-mono text-xs text-slate-300">{{ f.estudiante.cedula }}</td>
                         <td class="py-3 px-3 font-bold text-white whitespace-nowrap">{{ f.estudiante.nombre_completo }}</td>
-                        <td class="py-3 px-3 text-xs text-slate-300 whitespace-nowrap">{{ f.estudiante.curso.nombre }}</td>
                         <td class="py-3 px-3 text-center">{{ f.materia }}</td>
                         <td class="py-3 px-3 text-center">{{ f.deberes }}</td>
                         <td class="py-3 px-3 text-center">{{ f.talleres }}</td>
