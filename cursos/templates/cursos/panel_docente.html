@@ -7,10 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
-    <div class="w-full max-w-[1850px] mx-auto px-4 md:px-8 py-6 flex-1">
+    <div class="w-full max-w-[1920px] mx-auto px-3 md:px-5 py-5 flex-1">
 
         <!-- CABECERA INSTITUCIONAL PANTALLA COMPLETA -->
-        <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border border-blue-800/60 rounded-2xl p-6 mb-6 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+        <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border border-blue-800/60 rounded-2xl p-5 mb-5 shadow-2xl flex flex-wrap items-center justify-between gap-4">
             <div>
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-extrabold tracking-widest text-amber-400 uppercase">Unidad Educativa Técnica "Dr. Enrique Noboa" • La Troncal</span>
@@ -22,53 +22,53 @@
                 <p class="text-slate-300 text-sm mt-1">Gestión centralizada de módulos con IA (EIS), cuadernos sellados, asistencia ponderada, pizarra, evaluaciones y esquelas.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <a href="/docente/crear-modulo-ia/" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">✨ Crear Módulo IA (EIS)</a>
-                <a href="/docente/asistencia-offline/" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">📱 Tomar Asistencia</a>
-                <a href="/docente/sabana-asistencia/{% if curso_id_actual %}?curso={{ curso_id_actual }}{% endif %}" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">📋 Sábana Asistencia</a>
-                <a href="/docente/esquelas/" class="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">📨 Esquelas Padres</a>
-                <a href="/admin/cursos/muestrasellofirma/" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-sm shadow transition">🏅 Sello / Firma</a>
-                <a href="/aula/" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">🎓 Aula Virtual</a>
-                <a href="/admin/" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm border border-slate-700 transition">⚙️ Administración</a>
+                <a href="/docente/crear-modulo-ia/" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs md:text-sm shadow transition">✨ Crear Módulo IA (EIS)</a>
+                <a href="/docente/asistencia-offline/" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs md:text-sm shadow transition">📱 Tomar Asistencia</a>
+                <a href="/docente/sabana-asistencia/{% if curso_id_actual %}?curso={{ curso_id_actual }}{% endif %}" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs md:text-sm shadow transition">📋 Sábana Asistencia</a>
+                <a href="/docente/esquelas/" class="bg-red-600 hover:bg-red-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs md:text-sm shadow transition">📨 Esquelas Padres</a>
+                <a href="/admin/cursos/muestrasellofirma/" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs md:text-sm shadow transition">🏅 Sello / Firma</a>
+                <a href="/aula/" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs md:text-sm shadow transition">🎓 Aula Virtual</a>
+                <a href="/admin/" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs md:text-sm border border-slate-700 transition">⚙️ Administración</a>
             </div>
         </div>
 
         <!-- TARJETAS KPI -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Estudiantes Activos</p>
                     <p class="text-3xl font-black text-white mt-1">{{ total_estudiantes }}</p>
                 </div>
                 <span class="text-3xl bg-slate-800 p-3 rounded-xl">👨‍🎓</span>
             </div>
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Módulos Interactivos IA (EIS)</p>
                     <p class="text-3xl font-black text-blue-400 mt-1">{{ total_modulos }}</p>
                 </div>
                 <span class="text-3xl bg-blue-950/70 p-3 rounded-xl">🤖</span>
             </div>
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Con Actividades Pendientes</p>
                     <p class="text-3xl font-black text-red-400 mt-1">{{ total_con_pendientes }}</p>
                 </div>
-                <a href="/docente/esquelas/" class="bg-red-950 hover:bg-red-900 border border-red-700 text-red-200 px-3.5 py-2.5 rounded-xl text-xs font-bold transition">Ver Esquelas →</a>
+                <a href="/docente/esquelas/" class="bg-red-950 hover:bg-red-900 border border-red-700 text-red-200 px-3.5 py-2 rounded-xl text-xs font-bold transition">Ver Esquelas →</a>
             </div>
         </div>
 
         <!-- BARRA DE FILTROS, BUSCADOR INSTANTÁNEO Y ACCIONES -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 mb-5 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-3 flex-1">
                 <form method="GET" id="formFiltroCurso" class="flex items-center gap-2">
                     <label class="text-sm font-bold text-slate-300">Curso:</label>
-                    <select name="curso_id" onchange="cambiarCursoPanel(this.form)" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-white min-w-[240px]">
+                    <select name="curso_id" onchange="cambiarCursoPanel(this.form)" class="bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm font-semibold text-white min-w-[230px]">
                         <option value="">Todos los Cursos</option>
                         {% for c in cursos %}
                         <option value="{{ c.id }}" {% if curso_id_actual == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
                         {% endfor %}
                     </select>
-                    <span id="estadoCargaCurso" class="hidden text-xs font-bold text-amber-400">⏳ Cargando curso...</span>
+                    <span id="estadoCargaCurso" class="hidden text-xs font-bold text-amber-400">⏳ Cargando...</span>
                 </form>
 
                 <input
@@ -76,71 +76,71 @@
                     id="filtroRapidoTabla"
                     oninput="filtrarEstudiantesTabla()"
                     placeholder="🔍 Buscar rápido por apellido, nombre o cédula..."
-                    class="bg-slate-950 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-4 py-2.5 text-sm text-white flex-1 min-w-[260px] max-w-md"
+                    class="bg-slate-950 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-3.5 py-2 text-sm text-white flex-1 min-w-[240px] max-w-md"
                 >
             </div>
 
             <div class="flex flex-wrap gap-2">
-                <a href="/admin/cursos/tarea/add/" class="bg-blue-700 hover:bg-blue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">+ Nueva Tarea / Cuaderno</a>
-                <a href="/admin/cursos/evaluacion/add/" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">+ Nueva Evaluación Online</a>
-                <a href="?curso_id={{ curso_id_actual }}&exportar=csv" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">📥 Descargar Excel (CSV)</a>
+                <a href="/admin/cursos/tarea/add/" class="bg-blue-700 hover:bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">+ Nueva Tarea / Cuaderno</a>
+                <a href="/admin/cursos/evaluacion/add/" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">+ Nueva Evaluación Online</a>
+                <a href="?curso_id={{ curso_id_actual }}&exportar=csv" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">📥 Descargar Excel (CSV)</a>
             </div>
         </div>
 
-        <!-- TABLA PANORÁMICA DE CALIFICACIONES -->
+        <!-- TABLA PANORÁMICA AJUSTADA AL 100% DE LA PANTALLA -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-x-auto shadow-2xl">
-            <table id="tablaNotasDocente" class="w-full text-left border-collapse text-sm">
-                <thead class="bg-slate-950 text-slate-300 text-xs uppercase border-b border-slate-800 sticky top-0 z-10">
+            <table id="tablaNotasDocente" class="w-full text-left border-collapse text-xs lg:text-sm">
+                <thead class="bg-slate-950 text-slate-300 text-[11px] uppercase border-b border-slate-800 sticky top-0 z-10">
                     <tr>
-                        <th class="py-4 px-4">#</th>
-                        <th class="py-4 px-4">Cédula</th>
-                        <th class="py-4 px-4">Apellidos y Nombres</th>
-                        <th class="py-4 px-3 text-center">Materia</th>
-                        <th class="py-4 px-3 text-center">Deberes</th>
-                        <th class="py-4 px-3 text-center">Talleres</th>
-                        <th class="py-4 px-3 text-center text-cyan-300">Actuación en Clase</th>
-                        <th class="py-4 px-3 text-center text-amber-300">Lección / Pizarra</th>
-                        <th class="py-4 px-3 text-center text-purple-300">EIS</th>
-                        <th class="py-4 px-3 text-center text-indigo-300">Evaluación Online</th>
-                        <th class="py-4 px-4 text-center">Promedio</th>
-                        <th class="py-4 px-4 text-right">Seguimiento</th>
+                        <th class="py-3 px-2.5 text-center">#</th>
+                        <th class="py-3 px-2">Cédula</th>
+                        <th class="py-3 px-2.5">Apellidos y Nombres</th>
+                        <th class="py-3 px-1.5 text-center">Materia</th>
+                        <th class="py-3 px-1.5 text-center">Deberes</th>
+                        <th class="py-3 px-1.5 text-center">Talleres</th>
+                        <th class="py-3 px-1.5 text-center text-cyan-300 leading-tight">Actuación<br>en Clase</th>
+                        <th class="py-3 px-1.5 text-center text-amber-300 leading-tight">Lección /<br>Pizarra</th>
+                        <th class="py-3 px-1.5 text-center text-purple-300">EIS</th>
+                        <th class="py-3 px-1.5 text-center text-indigo-300 leading-tight">Evaluación<br>Online</th>
+                        <th class="py-3 px-2 text-center">Promedio</th>
+                        <th class="py-3 px-2.5 text-right">Seguimiento</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/80">
                     {% for f in filas %}
                     {% ifchanged f.estudiante.curso.nombre %}
                     <tr class="fila-curso bg-indigo-950/80 border-y border-indigo-800/70">
-                        <td colspan="12" class="py-2.5 px-4 text-xs font-extrabold uppercase tracking-wider text-indigo-200">
+                        <td colspan="12" class="py-2 px-3 text-xs font-extrabold uppercase tracking-wider text-indigo-200">
                             📚 CURSO: {{ f.estudiante.curso.nombre }}
                         </td>
                     </tr>
                     {% endifchanged %}
-                    <tr class="fila-estudiante {% if f.retirado %}opacity-60 bg-slate-950/70{% else %}hover:bg-slate-800/50{% endif %} transition-colors" data-busqueda="{{ f.estudiante.cedula }} {{ f.estudiante.nombre_completo|lower }}">
-                        <td class="py-3.5 px-4 text-slate-500 font-semibold">{{ forloop.counter }}</td>
-                        <td class="py-3.5 px-4 font-mono text-xs text-slate-300">{{ f.estudiante.cedula }}</td>
-                        <td class="py-3.5 px-4 font-bold text-white whitespace-nowrap">
-                            {{ f.estudiante.nombre_completo }}
+                    <tr class="fila-estudiante {% if f.retirado %}opacity-65 bg-slate-950/70{% else %}hover:bg-slate-800/50{% endif %} transition-colors" data-busqueda="{{ f.estudiante.cedula }} {{ f.estudiante.nombre_completo|lower }}">
+                        <td class="py-2.5 px-2.5 text-center text-slate-500 font-semibold">{{ forloop.counter }}</td>
+                        <td class="py-2.5 px-2 font-mono text-xs text-slate-300 whitespace-nowrap">{{ f.estudiante.cedula }}</td>
+                        <td class="py-2.5 px-2.5 font-bold text-white">
+                            <span>{{ f.estudiante.nombre_completo }}</span>
                             {% if f.retirado %}
-                            <span class="ml-2 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-amber-950 text-amber-300 border border-amber-700">🔒 Retirado</span>
+                            <span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-950 text-amber-300 border border-amber-700 inline-block">🔒 Retirado</span>
                             {% endif %}
                         </td>
-                        <td class="py-3.5 px-3 text-center">{{ f.materia }}</td>
-                        <td class="py-3.5 px-3 text-center">{{ f.deberes }}</td>
-                        <td class="py-3.5 px-3 text-center">{{ f.talleres }}</td>
-                        <td class="py-3.5 px-3 text-center font-semibold text-cyan-200">{{ f.actuacion_clase }}</td>
-                        <td class="py-3.5 px-3 text-center font-semibold text-amber-200">{{ f.leccion_pizarra }}</td>
-                        <td class="py-3.5 px-3 text-center font-semibold text-purple-200">{{ f.eis }}</td>
-                        <td class="py-3.5 px-3 text-center font-semibold text-indigo-200">{{ f.evaluaciones }}</td>
-                        <td class="py-3.5 px-4 text-center">
-                            <span class="px-3 py-1 rounded-full text-xs font-black {% if f.retirado %}bg-slate-800 text-slate-300 border border-slate-600{% elif f.promedio >= 7 %}bg-emerald-950 text-emerald-300 border border-emerald-600{% else %}bg-red-950 text-red-300 border border-red-600{% endif %}">
+                        <td class="py-2.5 px-1.5 text-center">{{ f.materia }}</td>
+                        <td class="py-2.5 px-1.5 text-center">{{ f.deberes }}</td>
+                        <td class="py-2.5 px-1.5 text-center">{{ f.talleres }}</td>
+                        <td class="py-2.5 px-1.5 text-center font-semibold text-cyan-200">{{ f.actuacion_clase }}</td>
+                        <td class="py-2.5 px-1.5 text-center font-semibold text-amber-200">{{ f.leccion_pizarra }}</td>
+                        <td class="py-2.5 px-1.5 text-center font-semibold text-purple-200">{{ f.eis }}</td>
+                        <td class="py-2.5 px-1.5 text-center font-semibold text-indigo-200">{{ f.evaluaciones }}</td>
+                        <td class="py-2.5 px-2 text-center">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-black {% if f.retirado %}bg-slate-800 text-slate-300 border border-slate-600{% elif f.promedio >= 7 %}bg-emerald-950 text-emerald-300 border border-emerald-600{% else %}bg-red-950 text-red-300 border border-red-600{% endif %}">
                                 {{ f.promedio }}
                             </span>
                         </td>
-                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                        <td class="py-2.5 px-2.5 text-right whitespace-nowrap">
                             {% if f.retirado %}
-                            <span class="text-xs text-amber-400 font-semibold">🔒 Retirado (Estático)</span>
+                            <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-950/80 text-amber-300 border border-amber-700/70 inline-block">🔒 Retirado</span>
                             {% elif f.pendientes > 0 %}
-                            <a href="{% url 'imprimir_esquela' f.estudiante.id %}" target="_blank" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg inline-block">
+                            <a href="{% url 'imprimir_esquela' f.estudiante.id %}" target="_blank" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg inline-block">
                                 📄 Esquela ({{ f.pendientes }})
                             </a>
                             {% else %}
@@ -155,7 +155,7 @@
     </div>
 
     <!-- PIE DE PÁGINA INSTITUCIONAL -->
-    <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 px-6 text-center text-xs text-slate-400">
+    <footer class="border-t border-slate-800/80 bg-slate-900/60 py-3.5 px-6 text-center text-xs text-slate-400">
         Plataforma Académica BGU Técnico • Creada por <strong class="text-slate-200">Msc. Edwin Lliguipuma</strong> — <strong class="text-amber-400">Unidad Educativa "Dr. Enrique Noboa"</strong>
     </footer>
 
